@@ -731,40 +731,29 @@ const App: React.FC = () => {
 
         {view === 'generator' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="space-y-6 animate-in slide-in-from-left duration-500">
-              {/* Dica de Impressão (Printer Config Info) */}
-              <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 flex items-start gap-4 shadow-sm">
-                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0">
-                   <Settings2 size={20} />
-                </div>
-                <div>
-                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Dica de Impressão</p>
-                   <p className="text-amber-800 text-xs font-bold leading-relaxed">
-                     Para etiquetas perfeitas, no diálogo de impressão selecione as margens como <span className="underline font-black">"Nenhuma"</span> e escolha o tamanho do papel correspondente à etiqueta física.
-                   </p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Search size={20} />
-                  </div>
-                  <h2 className="text-lg font-black uppercase tracking-tight">Buscar Produto</h2>
-                </div>
+            <div className="space-y-4 animate-in slide-in-from-left duration-500">
+              
+              {/* Busca de Produto Compacta */}
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
                 <div className="relative">
-                  <input type="text" placeholder="Nome ou código do fertilizante..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-emerald-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar Fertilizante (Nome ou Código)..." 
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 pl-10 text-sm font-bold outline-none focus:border-emerald-500 transition-all" 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)} 
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
                 {searchQuery && (
-                  <div className="mt-4 max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                  <div className="mt-3 max-h-[250px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                     {filteredProducts.map(p => (
-                      <button key={p.id} onClick={() => { setSelectedProductId(p.id); setSearchQuery(''); }} className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${selectedProductId === p.id ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-50 hover:border-slate-200 bg-white'}`}>
+                      <button key={p.id} onClick={() => { setSelectedProductId(p.id); setSearchQuery(''); }} className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${selectedProductId === p.id ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-50 hover:border-slate-200 bg-white'}`}>
                         <div className="text-left">
-                          <p className="font-black text-slate-900 leading-none mb-1">{p.name}</p>
-                          <p className="text-xs font-bold text-slate-500 uppercase">{p.code} • {p.nature}</p>
+                          <p className="font-black text-slate-900 text-xs leading-none mb-1">{p.name}</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">{p.code} • {p.nature}</p>
                         </div>
-                        <ChevronRight className={selectedProductId === p.id ? 'text-emerald-500' : 'text-slate-300'} />
+                        <ChevronRight className={selectedProductId === p.id ? 'text-emerald-500' : 'text-slate-300'} size={14} />
                       </button>
                     ))}
                   </div>
@@ -772,89 +761,89 @@ const App: React.FC = () => {
               </div>
 
               {selectedProduct && (
-                <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-8 animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                     <div>
                       <p className="text-emerald-500 font-black text-[10px] uppercase tracking-[0.2em] mb-1">Configuração de Impressão</p>
-                      <h3 className="text-2xl font-black">{selectedProduct.name}</h3>
+                      <h3 className="text-xl md:text-2xl font-black">{selectedProduct.name}</h3>
                     </div>
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-sm">{selectedProduct.code}</div>
+                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs uppercase">{selectedProduct.code}</div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4 md:gap-6">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Lote <span className="text-red-500">*</span>
                       </label>
-                      <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500 uppercase" value={session.lote} onChange={(e) => setSession({ ...session, lote: e.target.value.toUpperCase() })} placeholder="EX: 123/24" />
+                      <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 uppercase text-sm" value={session.lote} onChange={(e) => setSession({ ...session, lote: e.target.value.toUpperCase() })} placeholder="EX: 123/24" />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Placa <span className="text-red-500">*</span>
                       </label>
-                      <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500 uppercase" value={session.placa} onChange={(e) => setSession({ ...session, placa: e.target.value.toUpperCase() })} placeholder="ABC-1234" />
+                      <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 uppercase text-sm" value={session.placa} onChange={(e) => setSession({ ...session, placa: e.target.value.toUpperCase() })} placeholder="ABC-1234" />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Tonelagem <span className="text-red-500">*</span>
                       </label>
-                      <input type="number" step="any" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500" value={session.tonelada} onChange={(e) => setSession({ ...session, tonelada: e.target.value })} placeholder="Ex: 32" />
+                      <input type="number" step="any" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={session.tonelada} onChange={(e) => setSession({ ...session, tonelada: e.target.value })} placeholder="Ex: 32" />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Peso Unitário (kg) <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500" value={session.peso} onChange={(e) => handlePesoChange(e.target.value)} placeholder="1.000" />
+                      <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={session.peso} onChange={(e) => handlePesoChange(e.target.value)} placeholder="1.000" />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Data Fabricação <span className="text-red-500">*</span>
                       </label>
                       <input 
                         type="date" 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500" 
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" 
                         value={getDateValue(session.fabricacao)} 
                         onChange={(e) => handleDateChange('fabricacao', e.target.value)} 
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
                         Validade <span className="text-red-500">*</span>
                       </label>
                       <input 
                         type="date" 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black outline-none focus:border-emerald-500" 
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" 
                         value={getDateValue(session.validade)} 
                         onChange={(e) => handleDateChange('validade', e.target.value)} 
                       />
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 rounded-3xl p-6 text-white flex items-center justify-between">
+                  <div className="bg-slate-900 rounded-2xl p-5 text-white flex items-center justify-between">
                     <div>
-                      <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
-                      <div className="flex items-center gap-3">
-                         <span className="text-3xl font-black">{labelQuantity}</span>
-                         <span className="text-slate-500 font-bold">Unidades</span>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
+                      <div className="flex items-center gap-2.5">
+                         <span className="text-2xl font-black">{labelQuantity}</span>
+                         <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">Unidades</span>
                       </div>
                     </div>
-                    <Printer className="text-emerald-400" size={32} />
+                    <Printer className="text-emerald-400" size={28} />
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 pt-2">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <button onClick={handleReset} className="md:col-span-1 py-5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-3xl transition-all flex items-center justify-center gap-2 active:scale-95 group">
-                        <RotateCcw size={20} className="group-hover:rotate-[-45deg] transition-all" /> 
+                      <button onClick={handleReset} className="md:col-span-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 group text-sm">
+                        <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-all" /> 
                         <span>LIMPAR</span>
                       </button>
-                      <button onClick={handlePrintLabels} className="md:col-span-3 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-3xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95">
-                        <Printer size={24} /> IMPRIMIR ETIQUETAS
+                      <button onClick={handlePrintLabels} className="md:col-span-3 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-base">
+                        <Printer size={22} /> IMPRIMIR ETIQUETAS
                       </button>
                     </div>
-                    <div className="flex items-center justify-center gap-4 py-2">
+                    <div className="flex items-center justify-center gap-4 py-1">
                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={saveToHistory} onChange={(e) => setSaveToHistory(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Salvar no Histórico</span>
+                          <input type="checkbox" checked={saveToHistory} onChange={(e) => setSaveToHistory(e.target.checked)} className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Salvar no Histórico</span>
                        </label>
                     </div>
                   </div>
@@ -862,7 +851,21 @@ const App: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-center sticky top-28 animate-in slide-in-from-right duration-500">
+            <div className="flex flex-col items-center gap-6 sticky top-28 animate-in slide-in-from-right duration-500">
+              
+              {/* Dica de Impressão - Agora Acima da Etiqueta */}
+              <div className="w-full max-w-[10.5cm] bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 flex items-start gap-4 shadow-sm no-print">
+                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0">
+                   <Settings2 size={20} />
+                </div>
+                <div>
+                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Dica de Impressão</p>
+                   <p className="text-amber-800 text-[11px] font-bold leading-relaxed">
+                     Para etiquetas perfeitas, no diálogo de impressão selecione as margens como <span className="underline font-black">"Nenhuma"</span> e escolha o tamanho do papel correspondente à etiqueta física.
+                   </p>
+                </div>
+              </div>
+
               {selectedProduct ? (
                 <div className="scale-[0.8] md:scale-[0.85] origin-top">
                   <LabelPreview product={selectedProduct} session={session} />
@@ -1217,7 +1220,7 @@ const App: React.FC = () => {
           .page-break { page-break-after: always; break-after: page; }
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 10px;
+          width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(0,0,0,0.05);
