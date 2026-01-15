@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Product, LabelSession } from '../types';
 
 interface LabelPreviewProps {
@@ -8,6 +8,8 @@ interface LabelPreviewProps {
 }
 
 const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
+  const [imageError, setImageError] = useState(false);
+
   // Formata o peso para garantir o padrão milhar (Ex: 1.000)
   const formattedPeso = useMemo(() => {
     if (!session.peso) return "0.000";
@@ -20,23 +22,29 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
     <div className="bg-white text-black font-bold overflow-hidden print:w-[10.5cm] print:h-[16cm] w-[10.5cm] h-[16cm] flex flex-col items-center relative border border-gray-100 shadow-sm print:border-0 print:shadow-none">
       
       {/* ÁREA DE GUIA (FURO) E LOGOTIPO - APENAS VISUALIZAÇÃO EM TELA (Oculto na Impressão) */}
-      <div className="print:hidden w-full flex flex-col items-center pt-4 shrink-0">
+      <div className="print:hidden w-full flex flex-col items-center pt-4 shrink-0 px-4">
         
         {/* Representação do furo da etiqueta (Bolinha tracejada) */}
         <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center mb-3">
-          <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
+          <div className="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
         </div>
 
-        {/* Logotipo */}
-        <img 
-          src="logo-fertimaxi.png" 
-          alt="Fertimaxi Logo" 
-          className="h-24 w-auto object-contain"
-          onError={(e) => {
-            // Log silencioso se a imagem não existir
-            (e.target as HTMLImageElement).style.opacity = '0.3';
-          }}
-        />
+        {/* Logotipo com Fallback */}
+        <div className="h-24 w-full flex items-center justify-center overflow-hidden">
+          {!imageError ? (
+            <img 
+              src="/logo-fertimaxi.png" 
+              alt="Fertimaxi Logo" 
+              className="h-full w-auto object-contain"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center border-2 border-slate-100 rounded-2xl w-full h-full bg-slate-50">
+              <span className="text-slate-400 font-black text-xl tracking-[0.2em]">FERTIMAXI</span>
+              <span className="text-[8px] text-slate-300 font-bold uppercase mt-1">Logo não encontrada na raiz</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ÁREA DE CONTEÚDO IMPRESSO - Esta parte é a que sai na impressora Zebra */}
@@ -100,7 +108,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
                 </div>
 
                 {/* Coluna K2O */}
-                <div className="w-[18%] flex col flex-col">
+                <div className="w-[18%] flex flex-col">
                   <div className="text-center p-0.5 text-[10px] font-black uppercase">% K₂O</div>
                   <div className="flex-1 flex flex-col">
                     <div className="flex-1 flex flex-col items-center justify-center text-[8.5px] p-0.5 leading-none text-center font-black">
