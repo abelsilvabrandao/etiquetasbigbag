@@ -81,6 +81,9 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
       processedValue = value.toUpperCase();
     } else if (name === 'driverCpf') {
       processedValue = formatCpf(value);
+    } else if (name === 'labelsQuantity' || name === 'sealsQuantity') {
+      // Permitir apenas números para estes campos
+      if (value !== '' && !/^\d+$/.test(value)) return;
     }
 
     setData(prev => ({ ...prev, [name]: processedValue }));
@@ -202,7 +205,8 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
                   <span className="text-red-500">*</span>
                 </label>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   name="labelsQuantity" 
                   value={data.labelsQuantity} 
                   onChange={handleChange} 
@@ -215,7 +219,8 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
                   {data.hasSeals && <span className="text-red-500">*</span>}
                 </label>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   name="sealsQuantity" 
                   value={data.sealsQuantity} 
                   onChange={handleChange} 

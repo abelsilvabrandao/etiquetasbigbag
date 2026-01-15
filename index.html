@@ -18,6 +18,16 @@
             padding: 0;
         }
         
+        /* Ocultar setas de campos numéricos (Spinners) */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
         /* Configurações Globais de Impressão */
         @media print {
             @page {
@@ -43,11 +53,6 @@
                 display: none !important;
             }
             
-            #root > *:not(.print-container) {
-                /* Se houver um container específico, ajustamos aqui */
-            }
-
-            /* Quebra de página automática para múltiplas etiquetas */
             .page-break {
                 page-break-after: always;
                 break-after: page;

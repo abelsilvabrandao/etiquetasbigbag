@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Search, Plus, Trash2, Printer, Edit2, Package, Tag, FileText, 
-  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2
+  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2, Save
 } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 
@@ -35,9 +35,10 @@ interface ConfirmDialogConfig {
   message: string;
   confirmLabel: string;
   cancelLabel?: string;
-  variant: 'danger' | 'primary' | 'success';
+  variant: 'danger' | 'primary' | 'success' | 'info';
   onConfirm: () => void;
   icon?: React.ReactNode;
+  hideCancel?: boolean;
 }
 
 const App: React.FC = () => {
@@ -58,7 +59,6 @@ const App: React.FC = () => {
   const [isPreviewTermOpen, setIsPreviewTermOpen] = useState(false);
   const [withdrawalData, setWithdrawalData] = useState<WithdrawalTermData | null>(null);
   const [isPrintingTerm, setIsPrintingTerm] = useState(false);
-  const [saveToHistory, setSaveToHistory] = useState(true);
 
   const [currentLogId, setCurrentLogId] = useState<string | null>(null);
   const [pendingPrint, setPendingPrint] = useState<'label' | 'term' | null>(null);
@@ -86,6 +86,7 @@ const App: React.FC = () => {
 
   const [historyPrintRecord, setHistoryPrintRecord] = useState<{product: Product, session: LabelSession, qty: string} | null>(null);
 
+  // Resetar o ID do log atual quando mudar lote ou placa para forçar nova verificação
   useEffect(() => {
     setCurrentLogId(null);
   }, [session.lote, session.placa, selectedProductId]);
@@ -113,7 +114,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Sincroniza fila do Firebase
     const unsub = onSnapshot(query(collection(db, 'queue'), orderBy('order', 'asc')), (snapshot) => {
       const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as QueueItem));
       setQueue(items);
@@ -154,6 +154,20 @@ const App: React.FC = () => {
 
   const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
+  // Helper para exibir diálogos customizados em vez de alerts
+  const showCustomAlert = (title: string, message: string, variant: ConfirmDialogConfig['variant'] = 'info', icon?: React.ReactNode) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmLabel: 'OK',
+      hideCancel: true,
+      variant,
+      icon: icon || (variant === 'success' ? <CheckCircle2 size={32} /> : variant === 'danger' ? <XCircle size={32} /> : <Info size={32} />),
+      onConfirm: closeConfirm
+    });
+  };
+
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return [];
     return products.filter(p => 
@@ -188,6 +202,7 @@ const App: React.FC = () => {
     await setDoc(doc(db, 'products', product.id), product);
     setIsProductModalOpen(false);
     setEditingProduct(undefined);
+    showCustomAlert('Sucesso', 'Produto salvo no banco de dados!', 'success');
   };
 
   const handleDeleteProduct = (id: string) => {
@@ -298,7 +313,7 @@ const App: React.FC = () => {
           await deleteDoc(doc(db, 'history', id));
           closeConfirm();
         } catch (error) {
-          alert('Erro ao excluir: ' + error);
+          showCustomAlert('Erro', 'Não foi possível excluir o registro.', 'danger');
         }
       }
     });
@@ -342,74 +357,92 @@ const App: React.FC = () => {
     });
   };
 
-  const logToFirebase = async (termGenerated: boolean, termData?: WithdrawalTermData) => {
-    if (!saveToHistory || !selectedProduct) return;
-
-    if (currentLogId && termGenerated && termData) {
-      const docRef = doc(db, 'history', currentLogId);
-      await updateDoc(docRef, {
-        termGenerated: true,
-        driverName: termData.driverName,
-        driverCpf: termData.driverCpf,
-        carrier: termData.carrier,
-        sealsQuantity: termData.sealsQuantity,
-        date: termData.date,
-        time: termData.time
-      });
+  const handleSaveToHistory = async () => {
+    if (!selectedProduct || !session.lote || !session.placa) {
+      showCustomAlert('Aviso', 'Selecione um produto e preencha Lote/Placa para salvar.', 'info');
       return;
     }
 
-    const record: GenerationRecord = {
-      timestamp: serverTimestamp(),
-      productName: selectedProduct.name,
-      productCode: selectedProduct.code,
-      productNature: selectedProduct.nature,
-      lote: session.lote,
-      placa: session.placa,
-      tonelada: session.tonelada,
-      labelsQuantity: labelQuantity,
-      termGenerated
-    };
-    
-    if (termGenerated && termData) {
-      record.driverName = termData.driverName;
-      record.driverCpf = termData.driverCpf;
-      record.carrier = termData.carrier;
-      record.sealsQuantity = termData.sealsQuantity;
-      record.date = termData.date;
-      record.time = termData.time;
-    }
+    const existingRecord = history.find(r => 
+      r.lote === session.lote && 
+      r.placa === session.placa && 
+      r.productCode === selectedProduct.code
+    );
 
-    const docRef = await addDoc(collection(db, 'history'), record);
-    setCurrentLogId(docRef.id);
+    const performSave = async (idToUpdate?: string) => {
+      const recordData = {
+        productName: selectedProduct.name,
+        productCode: selectedProduct.code,
+        productNature: selectedProduct.nature,
+        lote: session.lote,
+        placa: session.placa,
+        tonelada: session.tonelada,
+        labelsQuantity: labelQuantity,
+        timestamp: serverTimestamp(),
+      };
+
+      try {
+        if (idToUpdate) {
+          await updateDoc(doc(db, 'history', idToUpdate), recordData);
+          setCurrentLogId(idToUpdate);
+        } else {
+          const docRef = await addDoc(collection(db, 'history'), {
+            ...recordData,
+            termGenerated: false
+          });
+          setCurrentLogId(docRef.id);
+        }
+        showCustomAlert('Sucesso', 'Registro sincronizado com sucesso no histórico!', 'success');
+        closeConfirm();
+      } catch (err) {
+        showCustomAlert('Erro', 'Houve uma falha ao tentar salvar o registro.', 'danger');
+      }
+    };
+
+    if (existingRecord) {
+      const hasChanges = existingRecord.tonelada !== session.tonelada || 
+                         existingRecord.labelsQuantity !== labelQuantity;
+
+      if (hasChanges) {
+        setConfirmDialog({
+          isOpen: true,
+          title: 'Atualizar Registro',
+          message: `Já existe um registro para o lote ${session.lote} e placa ${session.placa}. Deseja salvar as alterações feitas agora?`,
+          confirmLabel: 'ATUALIZAR DADOS',
+          variant: 'primary',
+          icon: <Save size={24} />,
+          onConfirm: () => performSave(existingRecord.id)
+        });
+      } else {
+        showCustomAlert('Informação', 'Este registro já está salvo no histórico e não possui alterações.', 'info');
+      }
+    } else {
+      await performSave();
+    }
   };
 
   const handlePrintLabels = () => {
     if (!selectedProduct) return;
 
-    // Validação de campos obrigatórios
     const missingFields = [];
     if (!session.lote) missingFields.push('Lote');
     if (!session.placa) missingFields.push('Placa');
     if (!session.tonelada) missingFields.push('Tonelagem');
-    if (!session.fabricacao) missingFields.push('Fabricação');
-    if (!session.validade) missingFields.push('Validade');
 
     if (missingFields.length > 0) {
-      alert(`Os seguintes campos são obrigatórios: \n- ${missingFields.join('\n- ')}`);
+      showCustomAlert('Campos Faltando', `Preencha os seguintes campos: ${missingFields.join(', ')}`, 'info', <AlertTriangle size={32} />);
       return;
     }
 
     setConfirmDialog({
       isOpen: true,
-      title: 'Confirmar Emissão',
-      message: `Serão impressas ${labelQuantity} etiquetas para o lote ${session.lote}. Confirmar processo?`,
-      confirmLabel: 'INICIAR IMPRESSÃO',
+      title: 'Confirmar Impressão',
+      message: `Serão impressas ${labelQuantity} etiquetas. Confirmar?`,
+      confirmLabel: 'IMPRIMIR AGORA',
       variant: 'success',
       icon: <Printer size={24} />,
       onConfirm: () => {
         setIsPrintingTerm(false);
-        logToFirebase(false);
         setPendingPrint('label');
         closeConfirm();
       }
@@ -418,7 +451,34 @@ const App: React.FC = () => {
 
   const handleTermSave = async (data: WithdrawalTermData) => {
     setWithdrawalData(data);
-    await logToFirebase(true, data);
+    
+    if (currentLogId) {
+      const docRef = doc(db, 'history', currentLogId);
+      await updateDoc(docRef, {
+        termGenerated: true,
+        driverName: data.driverName,
+        driverCpf: data.driverCpf,
+        carrier: data.carrier,
+        sealsQuantity: data.sealsQuantity,
+        date: data.date,
+        time: data.time
+      });
+    } else {
+      const record: GenerationRecord = {
+        timestamp: serverTimestamp(),
+        productName: selectedProduct?.name || '',
+        productCode: selectedProduct?.code || '',
+        lote: session.lote,
+        placa: session.placa,
+        tonelada: session.tonelada,
+        labelsQuantity: labelQuantity,
+        termGenerated: true,
+        ...data
+      };
+      const docRef = await addDoc(collection(db, 'history'), record);
+      setCurrentLogId(docRef.id);
+    }
+    
     setIsTermModalOpen(false);
     setIsPreviewTermOpen(true);
   };
@@ -453,7 +513,6 @@ const App: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Funções da Fila de Carregamento
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -497,12 +556,12 @@ const App: React.FC = () => {
           for (const item of newItems) {
             await addDoc(collection(db, 'queue'), item);
           }
+          showCustomAlert('Sucesso', `${newItems.length} veículos importados com sucesso!`, 'success');
         } else {
-          alert("Nenhum veículo identificado no PDF. Verifique o formato do arquivo.");
+          showCustomAlert('Aviso', 'Nenhum veículo identificado no padrão do PDF.', 'info');
         }
       } catch (error) {
-        console.error("PDF Parse Error:", error);
-        alert("Erro ao ler PDF: " + (error as Error).message);
+        showCustomAlert('Erro', 'Falha ao processar o arquivo PDF.', 'danger');
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -550,13 +609,11 @@ const App: React.FC = () => {
     setConfirmDialog({
       isOpen: true,
       title: 'Limpar Fila',
-      message: 'Deseja remover TODOS os itens da fila de carregamento?',
+      message: 'Deseja remover TODOS os itens da fila?',
       confirmLabel: 'LIMPAR AGORA',
       variant: 'danger',
       onConfirm: async () => {
-        for (const item of queue) {
-          await deleteDoc(doc(db, 'queue', item.id));
-        }
+        for (const item of queue) await deleteDoc(doc(db, 'queue', item.id));
         closeConfirm();
       }
     });
@@ -600,27 +657,12 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-black">Fila de Carregamento</h2>
                 <p className="text-slate-500 font-bold">Importe e gerencie a ordem de carregamento dos veículos.</p>
               </div>
-              
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handlePdfImport} 
-                  accept=".pdf" 
-                  className="hidden" 
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isImporting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {isImporting ? <Clock className="animate-spin" size={20} /> : <FileUp size={20} />} 
-                  IMPORTAR ORDEM (PDF)
+                <input type="file" ref={fileInputRef} onChange={handlePdfImport} accept=".pdf" className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:opacity-50">
+                  {isImporting ? <Clock className="animate-spin" size={20} /> : <FileUp size={20} />} IMPORTAR ORDEM (PDF)
                 </button>
-                <button 
-                  onClick={clearQueue}
-                  className="bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95"
-                >
+                <button onClick={clearQueue} className="bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95">
                   <Trash2 size={20} /> LIMPAR FILA
                 </button>
               </div>
@@ -641,26 +683,17 @@ const App: React.FC = () => {
                   </thead>
                   <Reorder.Group axis="y" values={queue} onReorder={handleReorder} as="tbody">
                     {queue.length > 0 ? queue.map((item) => (
-                      <Reorder.Item 
-                        key={item.id} 
-                        value={item} 
-                        as="tr" 
-                        className={`hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0 ${item.status === 'completed' ? 'opacity-50 grayscale' : ''}`}
-                      >
+                      <Reorder.Item key={item.id} value={item} as="tr" className={`hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0 ${item.status === 'completed' ? 'opacity-50 grayscale' : ''}`}>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
                              <GripVertical className="text-slate-300 drag-handle" size={16} />
                              <span className="font-black text-slate-900">{item.order}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col">
-                            <span className="font-black text-slate-900 text-lg">{item.placa}</span>
-                          </div>
-                        </td>
+                        <td className="px-6 py-5"><span className="font-black text-slate-900 text-lg">{item.placa}</span></td>
                         <td className="px-6 py-5">
                           <p className="font-black text-slate-900 text-sm">{item.carrier}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">PEDIDO: {item.orderNumber}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PEDIDO: {item.orderNumber}</p>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
@@ -678,49 +711,20 @@ const App: React.FC = () => {
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-end gap-2">
                              {item.status !== 'completed' && (
-                               <button 
-                                 onClick={() => handleGenerateFromQueue(item)}
-                                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-emerald-100"
-                               >
+                               <button onClick={() => handleGenerateFromQueue(item)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-emerald-100">
                                  <Tag size={14} /> GERAR
                                </button>
                              )}
-                             
                              <div className="flex bg-slate-100 p-1 rounded-xl">
-                               <button 
-                                 onClick={() => handleQueueStatusChange(item.id, 'label_issued')}
-                                 title="Marcar Etiqueta Emitida"
-                                 className={`p-2 rounded-lg transition-all ${item.status === 'label_issued' ? 'bg-blue-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                               >
-                                 <Printer size={16} />
-                               </button>
-                               <button 
-                                 onClick={() => handleQueueStatusChange(item.id, 'completed')}
-                                 title="Marcar Saída Concluída"
-                                 className={`p-2 rounded-lg transition-all ${item.status === 'completed' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                               >
-                                 <Check size={16} />
-                               </button>
-                               <button 
-                                 onClick={() => handleRemoveQueueItem(item.id)}
-                                 title="Remover da Fila"
-                                 className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-all"
-                               >
-                                 <X size={16} />
-                               </button>
+                               <button onClick={() => handleQueueStatusChange(item.id, 'label_issued')} className={`p-2 rounded-lg transition-all ${item.status === 'label_issued' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}><Printer size={16} /></button>
+                               <button onClick={() => handleQueueStatusChange(item.id, 'completed')} className={`p-2 rounded-lg transition-all ${item.status === 'completed' ? 'bg-emerald-500 text-white' : 'text-slate-400'}`}><Check size={16} /></button>
+                               <button onClick={() => handleRemoveQueueItem(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-all"><X size={16} /></button>
                              </div>
                           </div>
                         </td>
                       </Reorder.Item>
                     )) : (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-20 text-center">
-                           <div className="flex flex-col items-center gap-4 text-slate-300">
-                             <Truck size={64} className="opacity-10" />
-                             <p className="font-black uppercase tracking-widest text-sm">Fila Vazia. Importe um PDF para iniciar.</p>
-                           </div>
-                        </td>
-                      </tr>
+                      <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">Fila Vazia</td></tr>
                     )}
                   </Reorder.Group>
                 </table>
@@ -732,17 +736,9 @@ const App: React.FC = () => {
         {view === 'generator' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div className="space-y-4 animate-in slide-in-from-left duration-500">
-              
-              {/* Busca de Produto Compacta */}
               <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
                 <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="Buscar Fertilizante (Nome ou Código)..." 
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 pl-10 text-sm font-bold outline-none focus:border-emerald-500 transition-all" 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)} 
-                  />
+                  <input type="text" placeholder="Buscar Fertilizante (Nome ou Código)..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 pl-10 text-sm font-bold outline-none focus:border-emerald-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
                 {searchQuery && (
@@ -772,97 +768,74 @@ const App: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Lote <span className="text-red-500">*</span>
-                      </label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lote <span className="text-red-500">*</span></label>
                       <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 uppercase text-sm" value={session.lote} onChange={(e) => setSession({ ...session, lote: e.target.value.toUpperCase() })} placeholder="EX: 123/24" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Placa <span className="text-red-500">*</span>
-                      </label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Placa <span className="text-red-500">*</span></label>
                       <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 uppercase text-sm" value={session.placa} onChange={(e) => setSession({ ...session, placa: e.target.value.toUpperCase() })} placeholder="ABC-1234" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Tonelagem <span className="text-red-500">*</span>
-                      </label>
-                      <input type="number" step="any" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={session.tonelada} onChange={(e) => setSession({ ...session, tonelada: e.target.value })} placeholder="Ex: 32" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Peso Unitário (kg) <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={session.peso} onChange={(e) => handlePesoChange(e.target.value)} placeholder="1.000" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Data Fabricação <span className="text-red-500">*</span>
-                      </label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tonelagem <span className="text-red-500">*</span></label>
                       <input 
-                        type="date" 
+                        type="text" 
+                        inputMode="decimal"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" 
-                        value={getDateValue(session.fabricacao)} 
-                        onChange={(e) => handleDateChange('fabricacao', e.target.value)} 
+                        value={session.tonelada} 
+                        onChange={(e) => {
+                          const val = e.target.value.replace(',', '.');
+                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                            setSession({ ...session, tonelada: e.target.value });
+                          }
+                        }} 
+                        placeholder="Ex: 32" 
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                        Validade <span className="text-red-500">*</span>
-                      </label>
-                      <input 
-                        type="date" 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" 
-                        value={getDateValue(session.validade)} 
-                        onChange={(e) => handleDateChange('validade', e.target.value)} 
-                      />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Peso Unitário (kg)</label>
+                      <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={session.peso} onChange={(e) => handlePesoChange(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Fabricação</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={getDateValue(session.fabricacao)} onChange={(e) => handleDateChange('fabricacao', e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Validade</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" value={getDateValue(session.validade)} onChange={(e) => handleDateChange('validade', e.target.value)} />
                     </div>
                   </div>
 
                   <div className="bg-slate-900 rounded-2xl p-5 text-white flex items-center justify-between">
                     <div>
                       <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
-                      <div className="flex items-center gap-2.5">
-                         <span className="text-2xl font-black">{labelQuantity}</span>
-                         <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">Unidades</span>
-                      </div>
+                      <span className="text-2xl font-black">{labelQuantity} <small className="text-xs text-slate-500">Unidades</small></span>
                     </div>
                     <Printer className="text-emerald-400" size={28} />
                   </div>
 
-                  <div className="flex flex-col gap-3 pt-2">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <button onClick={handleReset} className="md:col-span-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 group text-sm">
-                        <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-all" /> 
-                        <span>LIMPAR</span>
-                      </button>
-                      <button onClick={handlePrintLabels} className="md:col-span-3 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-base">
-                        <Printer size={22} /> IMPRIMIR ETIQUETAS
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-center gap-4 py-1">
-                       <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={saveToHistory} onChange={(e) => setSaveToHistory(e.target.checked)} className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Salvar no Histórico</span>
-                       </label>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <button onClick={handleReset} className="md:col-span-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 text-sm">
+                      <RotateCcw size={18} /> LIMPAR
+                    </button>
+                    
+                    <button onClick={handleSaveToHistory} className="md:col-span-3 py-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-base">
+                      <Save size={20} /> SALVAR NO HISTÓRICO
+                    </button>
+
+                    <button onClick={handlePrintLabels} className="md:col-span-4 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-xl">
+                      <Printer size={24} /> IMPRIMIR ETIQUETAS
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="flex flex-col items-center gap-6 sticky top-28 animate-in slide-in-from-right duration-500">
-              
-              {/* Dica de Impressão - Agora Acima da Etiqueta */}
               <div className="w-full max-w-[10.5cm] bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 flex items-start gap-4 shadow-sm no-print">
-                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0">
-                   <Settings2 size={20} />
-                </div>
+                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0"><Settings2 size={20} /></div>
                 <div>
                    <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Dica de Impressão</p>
-                   <p className="text-amber-800 text-[11px] font-bold leading-relaxed">
-                     Para etiquetas perfeitas, no diálogo de impressão selecione as margens como <span className="underline font-black">"Nenhuma"</span> e escolha o tamanho do papel correspondente à etiqueta física.
-                   </p>
+                   <p className="text-amber-800 text-[11px] font-bold leading-relaxed">Selecione margens como "Nenhuma" no diálogo de impressão para ajuste milimétrico.</p>
                 </div>
               </div>
 
@@ -873,7 +846,7 @@ const App: React.FC = () => {
               ) : (
                 <div className="w-full max-w-[10.5cm] aspect-[10.5/16] border-4 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-300 p-12 text-center">
                   <Tag size={64} className="mb-4 opacity-20" />
-                  <p className="font-black uppercase tracking-widest text-sm">Selecione um produto para visualizar a etiqueta</p>
+                  <p className="font-black uppercase tracking-widest text-sm">Selecione um produto para visualizar</p>
                 </div>
               )}
             </div>
@@ -883,25 +856,22 @@ const App: React.FC = () => {
         {view === 'inventory' && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-black">Banco de Produtos</h2>
-                <p className="text-slate-500 font-bold">Gerencie os fertilizantes cadastrados no sistema.</p>
-              </div>
-              <button onClick={() => { setEditingProduct(undefined); setIsProductModalOpen(true); }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-emerald-100 transition-all active:scale-95">
+              <h2 className="text-3xl font-black">Banco de Produtos</h2>
+              <button onClick={() => { setEditingProduct(undefined); setIsProductModalOpen(true); }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-all active:scale-95">
                 <Plus size={20} /> NOVO PRODUTO
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map(p => (
-                <div key={p.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                <div key={p.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
                   <div className="flex justify-between items-start mb-4">
                     <div className="bg-slate-50 p-3 rounded-2xl font-black text-xs text-slate-500">{p.code}</div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => { setEditingProduct(p); setIsProductModalOpen(true); }} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                      <button onClick={() => { setEditingProduct(p); setIsProductModalOpen(true); }} className="p-2 text-blue-600 rounded-lg hover:bg-blue-50"><Edit2 size={16} /></button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-600 rounded-lg hover:bg-red-50"><Trash2 size={16} /></button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-black mb-1 leading-tight">{p.name}</h3>
+                  <h3 className="text-xl font-black leading-tight">{p.name}</h3>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">{p.nature}</p>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(p.composition).filter(([_, v]) => v && v !== '0').map(([k, v]) => (
@@ -917,175 +887,67 @@ const App: React.FC = () => {
         {view === 'history' && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
-                <h2 className="text-3xl font-black">Histórico de Emissões</h2>
-                <p className="text-slate-500 font-bold">Gerencie e consulte todos os registros emitidos.</p>
-              </div>
-              
+              <h2 className="text-3xl font-black">Histórico de Emissões</h2>
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                <div className="relative group w-full md:w-80">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Filtrar por Motorista, Placa, Lote..." 
-                    value={historySearchQuery}
-                    onChange={(e) => setHistorySearchQuery(e.target.value)}
-                    className="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-emerald-500 transition-all shadow-sm"
-                  />
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input type="text" placeholder="Filtrar Histórico..." value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} className="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-emerald-500 transition-all" />
                 </div>
-
                 <div className="flex bg-white border-2 border-slate-200 rounded-2xl p-1 shadow-sm">
-                  <button 
-                    onClick={() => setHistoryTermFilter('all')}
-                    className={`px-4 py-3 rounded-xl text-xs font-black transition-all ${historyTermFilter === 'all' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                  >
-                    TODOS
-                  </button>
-                  <button 
-                    onClick={() => setHistoryTermFilter('with')}
-                    className={`px-4 py-3 rounded-xl text-xs font-black transition-all ${historyTermFilter === 'with' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                  >
-                    COM TERMO
-                  </button>
-                  <button 
-                    onClick={() => setHistoryTermFilter('without')}
-                    className={`px-4 py-3 rounded-xl text-xs font-black transition-all ${historyTermFilter === 'without' ? 'bg-slate-200 text-slate-600' : 'text-slate-400 hover:bg-slate-50'}`}
-                  >
-                    SEM TERMO
-                  </button>
+                  {['all', 'with', 'without'].map(f => (
+                    <button key={f} onClick={() => setHistoryTermFilter(f as any)} className={`px-4 py-3 rounded-xl text-xs font-black transition-all ${historyTermFilter === f ? 'bg-slate-900 text-white' : 'text-slate-400'}`}>
+                      {f === 'all' ? 'TODOS' : f === 'with' ? 'COM TERMO' : 'SEM TERMO'}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/40">
+            <div className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-xl">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50/50">
                     <tr>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Data / Hora</th>
-                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto Emitido</th>
-                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Detalhes do Transporte</th>
-                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Motorista / Transp</th>
-                      <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumo</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Lote/Placa</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Motorista</th>
                       <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {filteredHistory.length > 0 ? filteredHistory.map((record) => (
                       <tr key={record.id} className="hover:bg-slate-50/30 transition-colors">
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-                               <Clock size={18} />
-                            </div>
-                            <div>
-                              <p className="font-black text-sm text-slate-900">{record.timestamp?.toDate ? record.timestamp.toDate().toLocaleDateString('pt-BR') : '...'}</p>
-                              <p className="text-[10px] text-slate-400 font-bold tracking-wider">{record.timestamp?.toDate ? record.timestamp.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '...'}</p>
-                            </div>
+                        <td className="px-6 py-5">
+                          <p className="font-black text-sm">{record.timestamp?.toDate?.().toLocaleDateString('pt-BR') || '...'}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{record.timestamp?.toDate?.().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) || '...'}</p>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="font-black text-slate-900 text-sm">{record.productName}</p>
+                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 rounded">{record.productCode}</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">LOTE: {record.lote}</span>
+                            <span className="text-xs font-black text-slate-900 uppercase">{record.placa}</span>
+                            <span className="text-[10px] font-black text-emerald-600">{record.tonelada} TON</span>
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <p className="font-black text-slate-900 text-sm leading-none mb-1.5">{record.productName}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded uppercase tracking-tighter">
-                              {record.productCode}
-                            </span>
-                            {record.productNature && (
-                              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-black rounded uppercase tracking-tighter">
-                                {record.productNature}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <div className="flex flex-col gap-1.5">
-                             <div className="flex items-center gap-1.5">
-                               <Tag size={12} className="text-slate-300" />
-                               <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">Lote: {record.lote}</span>
-                             </div>
-                             <div className="flex items-center gap-1.5">
-                               <Truck size={12} className="text-slate-300" />
-                               <span className="text-xs font-black text-slate-900 uppercase">{record.placa}</span>
-                             </div>
-                             <div className="flex items-center gap-1.5">
-                               <Weight size={12} className="text-slate-400" />
-                               <span className="text-xs font-black text-emerald-600 uppercase">{record.tonelada} TON</span>
-                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          {record.driverName ? (
-                            <div className="space-y-1">
-                               <p className="font-black text-slate-900 text-sm">{record.driverName}</p>
-                               <div className="flex items-center gap-2">
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight flex items-center gap-1">
-                                   <Database size={10} /> {record.carrier || 'TRANS. NÃO INF.'}
-                                 </p>
-                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-300 uppercase italic">Dados pendentes</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-5 text-center whitespace-nowrap">
-                           <div className="flex flex-col items-center gap-2">
-                              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-                                <FileText size={12} />
-                                <span className="font-black text-[10px]">{record.labelsQuantity} ETIQ.</span>
-                              </div>
-                              {record.termGenerated ? (
-                                <div className="flex items-center gap-1 text-emerald-500 font-black text-[9px] uppercase tracking-widest">
-                                  <CheckCircle2 size={12} /> TERMO OK
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1 text-slate-300 font-black text-[9px] uppercase tracking-widest">
-                                  <XCircle size={12} /> SEM TERMO
-                                </div>
-                              )}
-                           </div>
+                          <p className="font-black text-slate-900 text-sm">{record.driverName || 'SEM TERMO'}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">{record.carrier || '-'}</p>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-1.5">
-                             <button 
-                               onClick={(e) => handleLoadFromHistory(record, e)}
-                               className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm group"
-                               title="Carregar no Gerador"
-                             >
-                               <Copy size={16} />
-                             </button>
-                             <button 
-                               onClick={(e) => handleHistoryPrintLabels(record, e)}
-                               className="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm group"
-                               title="Imprimir Etiquetas Novamente"
-                             >
-                               <Printer size={16} />
-                             </button>
-                             <button 
-                               onClick={(e) => handleHistoryTerm(record, e)}
-                               className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-sm group ${record.termGenerated ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
-                               title={record.termGenerated ? "Visualizar Termo" : "Gerar Termo"}
-                             >
-                               <Eye size={16} />
-                             </button>
-                             <button 
-                               onClick={(e) => handleDeleteHistory(record.id, e)}
-                               className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm group"
-                               title="Excluir do Histórico"
-                             >
-                               <Trash2 size={16} />
-                             </button>
+                             <button onClick={(e) => handleLoadFromHistory(record, e)} className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Copy size={16} /></button>
+                             <button onClick={(e) => handleHistoryPrintLabels(record, e)} className="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Printer size={16} /></button>
+                             <button onClick={(e) => handleHistoryTerm(record, e)} className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${record.termGenerated ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-slate-100 text-slate-400'}`}><Eye size={16} /></button>
+                             <button onClick={(e) => handleDeleteHistory(record.id, e)} className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={16} /></button>
                           </div>
                         </td>
                       </tr>
                     ) ) : (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-20 text-center">
-                           <div className="flex flex-col items-center gap-4 text-slate-300">
-                             <Filter size={48} className="opacity-20" />
-                             <p className="font-black uppercase tracking-widest text-sm">Nenhum registro encontrado</p>
-                           </div>
-                        </td>
-                      </tr>
+                      <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest">Histórico Vazio</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1095,60 +957,39 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* MODAL DE PRÉVIA DO TERMO COM ÁREA DE SCROLL MELHORADA */}
+      {/* MODAL DE PRÉVIA DO TERMO */}
       {isPreviewTermOpen && withdrawalData && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 no-print">
-          <div className="relative bg-white md:rounded-3xl shadow-2xl flex flex-col w-full max-w-5xl h-full md:h-[95vh] animate-in zoom-in-95 duration-300 overflow-hidden">
-            {/* Toolbar Prévia - Sempre Visível */}
+          <div className="relative bg-white md:rounded-3xl shadow-2xl flex flex-col w-full max-w-5xl h-full md:h-[95vh] overflow-hidden">
             <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white z-20 shrink-0">
-               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner">
-                    <FileText size={24} />
-                  </div>
-                  <div className="hidden sm:block">
-                    <h3 className="text-lg md:text-xl font-black">Conferência de Documento</h3>
-                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Confira os dados antes de imprimir</p>
-                  </div>
-               </div>
-               <div className="flex gap-2 md:gap-3">
-                  <button 
-                    onClick={() => { setIsPreviewTermOpen(false); setIsTermModalOpen(true); }}
-                    className="px-4 md:px-6 py-2 md:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl transition-all flex items-center gap-2 text-sm"
-                  >
-                    <Edit2 size={16} /> <span className="hidden xs:inline">CORRIGIR</span>
-                  </button>
-                  <button 
-                    onClick={confirmAndPrintTerm}
-                    className="px-5 md:px-8 py-2 md:py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-200 flex items-center gap-2 transition-all active:scale-95 text-sm"
-                  >
+               <h3 className="text-xl font-black">Conferência de Documento</h3>
+               <div className="flex gap-2">
+                  <button onClick={() => { setIsPreviewTermOpen(false); setIsTermModalOpen(true); }} className="px-4 py-2 bg-slate-100 text-slate-700 font-black rounded-xl text-sm">CORRIGIR</button>
+                  <button onClick={confirmAndPrintTerm} className="px-6 py-2 bg-emerald-500 text-white font-black rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-200">
                     <Printer size={18} /> IMPRIMIR AGORA
                   </button>
-                  <button onClick={() => setIsPreviewTermOpen(false)} className="p-2 md:p-3 text-slate-400 hover:text-slate-600 transition-colors"><X size={24} /></button>
+                  <button onClick={() => setIsPreviewTermOpen(false)} className="p-2 text-slate-400"><X size={24} /></button>
                </div>
             </div>
-
-            {/* Document Area com Scroll Independente */}
             <div className="flex-1 overflow-y-auto bg-slate-200/50 p-4 md:p-12 flex justify-center custom-scrollbar">
-               <div className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] origin-top transform-gpu transition-transform mb-12">
-                 {/* Ajustamos o componente para não ter margens externas excessivas na prévia */}
-                 <div className="scale-[0.5] sm:scale-[0.7] md:scale-[0.8] lg:scale-[1.0] origin-top">
-                    <WithdrawalTermPreview data={withdrawalData} />
-                 </div>
+               <div className="bg-white shadow-2xl scale-[0.5] sm:scale-[0.7] md:scale-[1.0] origin-top mb-12">
+                  <WithdrawalTermPreview data={withdrawalData} />
                </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* DIÁLOGO DE CONFIRMAÇÃO PERSONALIZADO */}
+      {/* DIÁLOGO DE CONFIRMAÇÃO / ALERTAS CUSTOMIZADOS */}
       {confirmDialog.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
               <div className="p-8 text-center">
-                 <div className={`mx-auto w-16 h-16 rounded-3xl flex items-center justify-center mb-6 shadow-lg ${
-                    confirmDialog.variant === 'danger' ? 'bg-red-50 text-red-600 shadow-red-100' :
-                    confirmDialog.variant === 'success' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-100' :
-                    'bg-blue-50 text-blue-600 shadow-blue-100'
+                 <div className={`mx-auto w-16 h-16 rounded-3xl flex items-center justify-center mb-6 ${
+                    confirmDialog.variant === 'danger' ? 'bg-red-50 text-red-600' : 
+                    confirmDialog.variant === 'success' ? 'bg-emerald-50 text-emerald-600' : 
+                    confirmDialog.variant === 'info' ? 'bg-blue-50 text-blue-600' :
+                    'bg-slate-50 text-slate-600'
                  }`}>
                     {confirmDialog.icon || <Info size={32} />}
                  </div>
@@ -1156,22 +997,15 @@ const App: React.FC = () => {
                  <p className="text-slate-500 font-bold leading-relaxed">{confirmDialog.message}</p>
               </div>
               <div className="p-4 bg-slate-50 flex flex-col gap-2">
-                 <button 
-                    onClick={confirmDialog.onConfirm}
-                    className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 ${
-                       confirmDialog.variant === 'danger' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
-                       confirmDialog.variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200' :
-                       'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
-                    }`}
-                 >
-                    {confirmDialog.confirmLabel}
-                 </button>
-                 <button 
-                    onClick={closeConfirm}
-                    className="w-full py-4 rounded-2xl font-black text-slate-400 hover:text-slate-600 transition-all"
-                 >
-                    {confirmDialog.cancelLabel || 'CANCELAR'}
-                 </button>
+                 <button onClick={confirmDialog.onConfirm} className={`w-full py-4 rounded-2xl font-black text-white transition-all active:scale-[0.98] ${
+                    confirmDialog.variant === 'danger' ? 'bg-red-500 hover:bg-red-600' : 
+                    confirmDialog.variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600' : 
+                    confirmDialog.variant === 'info' ? 'bg-blue-500 hover:bg-blue-600' :
+                    'bg-slate-900 hover:bg-slate-800'
+                 }`}>{confirmDialog.confirmLabel}</button>
+                 {!confirmDialog.hideCancel && (
+                    <button onClick={closeConfirm} className="w-full py-4 rounded-2xl font-black text-slate-400 hover:bg-slate-100 transition-all">CANCELAR</button>
+                 )}
               </div>
            </div>
         </div>
@@ -1180,14 +1014,14 @@ const App: React.FC = () => {
       {showTermPrompt && !isTermModalOpen && !isPrintingTerm && !isPreviewTermOpen && (
         <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-8 duration-500 no-print">
           <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-2xl border border-white/10 flex items-center gap-6">
-            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20"><FileText size={24} /></div>
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center"><FileText size={24} /></div>
             <div>
-              <h4 className="font-black text-lg leading-tight">Deseja gerar o Termo de Retirada?</h4>
-              <p className="text-slate-400 text-sm font-medium">Isso irá atualizar o registro atual.</p>
+              <h4 className="font-black text-lg">Deseja gerar o Termo de Retirada?</h4>
+              <p className="text-slate-400 text-sm">Vincule os dados do motorista ao registro.</p>
             </div>
-            <div className="flex gap-3 ml-4">
-              <button onClick={() => setShowTermPrompt(false)} className="px-6 py-3 font-bold text-slate-400 hover:text-white transition-colors">AGORA NÃO</button>
-              <button onClick={() => setIsTermModalOpen(true)} className="px-8 py-3 bg-white text-slate-900 font-black rounded-2xl hover:bg-emerald-400 hover:text-white transition-all active:scale-95">GERAR TERMO</button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowTermPrompt(false)} className="px-6 py-3 font-bold text-slate-400">NÃO</button>
+              <button onClick={() => setIsTermModalOpen(true)} className="px-8 py-3 bg-white text-slate-900 font-black rounded-2xl">SIM, GERAR</button>
             </div>
           </div>
         </div>
@@ -1201,38 +1035,13 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center">
             {Array.from({ length: parseInt(historyPrintRecord ? historyPrintRecord.qty : labelQuantity) || 1 }).map((_, i) => (
               <div key={i} className="page-break">
-                <LabelPreview 
-                  product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} 
-                  session={historyPrintRecord ? historyPrintRecord.session : session} 
-                />
+                <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
               </div>
             ))}
           </div>
         )}
         {isPrintingTerm && withdrawalData && ( <WithdrawalTermPreview data={withdrawalData} /> )}
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { margin: 0; size: auto; }
-          body { margin: 0; padding: 0; background: white !important; }
-          .no-print { display: none !important; }
-          .page-break { page-break-after: always; break-after: page; }
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.05);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.2);
-          border-radius: 20px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0,0,0,0.3);
-        }
-      `}} />
     </div>
   );
 };
