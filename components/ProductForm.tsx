@@ -56,23 +56,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, onCancel, initialProd
   const microInputClasses = "p-2 border-2 border-gray-400 rounded-lg bg-white text-slate-900 focus:border-emerald-500 outline-none font-bold text-sm text-center w-full";
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start md:items-center justify-center p-4 z-50 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[95vh] md:max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
         
-        {/* Modal Header */}
-        <div className="bg-[#0F172A] p-8 text-white flex justify-between items-center">
+        {/* Modal Header - Fixo */}
+        <div className="bg-[#0F172A] p-6 md:p-8 text-white flex justify-between items-center shrink-0">
           <div>
-            <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">Administração de Produto</p>
-            <h2 className="text-2xl font-black">
+            <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px] mb-1">Administração de Produto</p>
+            <h2 className="text-xl md:text-2xl font-black">
               {initialProduct ? 'Editar Cadastro' : 'Novo Cadastro'}
             </h2>
           </div>
-          <button onClick={onCancel} className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all">
-            <X size={24} />
+          <button onClick={onCancel} className="p-2.5 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all">
+            <X size={20} />
           </button>
         </div>
         
-        <div className="p-8 md:p-10 space-y-10">
+        {/* Modal Body - Rolável */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 custom-scrollbar">
           <div className="grid grid-cols-1 gap-10">
             
             {/* Info Section */}
@@ -163,21 +164,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, onCancel, initialProd
               </div>
             </section>
           </div>
+        </div>
 
-          <div className="flex justify-end gap-4 pt-8 border-t-2 border-slate-100">
-            <button
-              onClick={onCancel}
-              className="px-8 py-4 border-2 border-gray-300 rounded-2xl text-slate-600 font-black hover:bg-gray-50 transition-all active:scale-95"
-            >
-              CANCELAR
-            </button>
-            <button
-              onClick={() => onSave(formData)}
-              className="px-12 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all active:scale-95"
-            >
-              SALVAR PRODUTO
-            </button>
-          </div>
+        {/* Modal Footer - Fixo */}
+        <div className="p-6 md:p-8 border-t-2 border-slate-100 bg-slate-50/50 flex justify-end gap-4 shrink-0">
+          <button
+            onClick={onCancel}
+            className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 rounded-2xl text-slate-600 font-black hover:bg-gray-100 transition-all active:scale-95 text-sm"
+          >
+            CANCELAR
+          </button>
+          <button
+            onClick={() => onSave(formData)}
+            className="px-8 md:px-12 py-3 md:py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all active:scale-95 text-sm"
+          >
+            SALVAR PRODUTO
+          </button>
         </div>
       </div>
     </div>

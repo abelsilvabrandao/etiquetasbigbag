@@ -393,32 +393,25 @@ const App: React.FC = () => {
           setCurrentLogId(docRef.id);
         }
         showCustomAlert('Sucesso', 'Registro sincronizado com sucesso no histórico!', 'success');
-        closeConfirm();
       } catch (err) {
         showCustomAlert('Erro', 'Houve uma falha ao tentar salvar o registro.', 'danger');
       }
     };
 
-    if (existingRecord) {
-      const hasChanges = existingRecord.tonelada !== session.tonelada || 
-                         existingRecord.labelsQuantity !== labelQuantity;
-
-      if (hasChanges) {
-        setConfirmDialog({
-          isOpen: true,
-          title: 'Atualizar Registro',
-          message: `Já existe um registro para o lote ${session.lote} e placa ${session.placa}. Deseja salvar as alterações feitas agora?`,
-          confirmLabel: 'ATUALIZAR DADOS',
-          variant: 'primary',
-          icon: <Save size={24} />,
-          onConfirm: () => performSave(existingRecord.id)
-        });
-      } else {
-        showCustomAlert('Informação', 'Este registro já está salvo no histórico e não possui alterações.', 'info');
+    setConfirmDialog({
+      isOpen: true,
+      title: existingRecord ? 'Atualizar Histórico' : 'Salvar no Histórico',
+      message: existingRecord 
+        ? `Já existe um registro para o lote ${session.lote}. Deseja salvar as alterações?`
+        : `Deseja salvar os dados do lote ${session.lote} e placa ${session.placa} no histórico?`,
+      confirmLabel: existingRecord ? 'ATUALIZAR' : 'SALVAR AGORA',
+      variant: 'primary',
+      icon: <Save size={24} />,
+      onConfirm: () => {
+        closeConfirm();
+        performSave(existingRecord?.id);
       }
-    } else {
-      await performSave();
-    }
+    });
   };
 
   const handlePrintLabels = () => {
@@ -659,7 +652,7 @@ const App: React.FC = () => {
               </div>
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <input type="file" ref={fileInputRef} onChange={handlePdfImport} accept=".pdf" className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:opacity-50">
+                <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50">
                   {isImporting ? <Clock className="animate-spin" size={20} /> : <FileUp size={20} />} IMPORTAR ORDEM (PDF)
                 </button>
                 <button onClick={clearQueue} className="bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95">
@@ -769,7 +762,19 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lote <span className="text-red-500">*</span></label>
-                      <input className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 uppercase text-sm" value={session.lote} onChange={(e) => setSession({ ...session, lote: e.target.value.toUpperCase() })} placeholder="EX: 123/24" />
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 font-black outline-none focus:border-emerald-500 text-sm" 
+                        value={session.lote} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d+$/.test(val)) {
+                            setSession({ ...session, lote: val });
+                          }
+                        }} 
+                        placeholder="Ex: 00011999" 
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Placa <span className="text-red-500">*</span></label>
@@ -805,15 +810,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 rounded-2xl p-5 text-white flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
-                      <span className="text-2xl font-black">{labelQuantity} <small className="text-xs text-slate-500">Unidades</small></span>
-                    </div>
-                    <Printer className="text-emerald-400" size={28} />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
                     <button onClick={handleReset} className="md:col-span-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 text-sm">
                       <RotateCcw size={18} /> LIMPAR
                     </button>
@@ -831,18 +828,41 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-center gap-6 sticky top-28 animate-in slide-in-from-right duration-500">
-              <div className="w-full max-w-[10.5cm] bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 flex items-start gap-4 shadow-sm no-print">
-                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0"><Settings2 size={20} /></div>
-                <div>
-                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Dica de Impressão</p>
-                   <p className="text-amber-800 text-[11px] font-bold leading-relaxed">Selecione margens como "Nenhuma" no diálogo de impressão para ajuste milimétrico.</p>
-                </div>
-              </div>
-
               {selectedProduct ? (
-                <div className="scale-[0.8] md:scale-[0.85] origin-top">
-                  <LabelPreview product={selectedProduct} session={session} />
-                </div>
+                <>
+                  {/* Widget Master: Totalizador + Dica Integrada */}
+                  <div className="w-full bg-slate-900 rounded-3xl p-5 text-white flex items-center justify-between shadow-2xl shadow-slate-200 relative overflow-hidden group">
+                    <div className="relative z-10 shrink-0">
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-black text-emerald-400">{labelQuantity}</span>
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Unids</span>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 px-4 text-center relative z-10 hidden md:flex flex-col items-center">
+                       <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-2xl max-w-[220px]">
+                          <Settings2 className="text-amber-400 shrink-0" size={14} />
+                          <p className="text-amber-100 text-[8px] font-bold uppercase leading-[1.3] tracking-wide text-left">
+                            Selecione margens como "Nenhuma" no diálogo de impressão para ajuste milimétrico.
+                          </p>
+                       </div>
+                    </div>
+
+                    <div className="relative z-10 shrink-0">
+                      <div className="p-3 bg-white/5 rounded-2xl text-emerald-400 group-hover:scale-110 transition-transform">
+                        <Printer size={32} />
+                      </div>
+                    </div>
+
+                    {/* Efeito visual de fundo */}
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                  </div>
+
+                  <div className="scale-[0.8] md:scale-[0.85] origin-top">
+                    <LabelPreview product={selectedProduct} session={session} />
+                  </div>
+                </>
               ) : (
                 <div className="w-full max-w-[10.5cm] aspect-[10.5/16] border-4 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-300 p-12 text-center">
                   <Tag size={64} className="mb-4 opacity-20" />
@@ -988,7 +1008,7 @@ const App: React.FC = () => {
                  <div className={`mx-auto w-16 h-16 rounded-3xl flex items-center justify-center mb-6 ${
                     confirmDialog.variant === 'danger' ? 'bg-red-50 text-red-600' : 
                     confirmDialog.variant === 'success' ? 'bg-emerald-50 text-emerald-600' : 
-                    confirmDialog.variant === 'info' ? 'bg-blue-50 text-blue-600' :
+                    confirmDialog.variant === 'info' ? 'bg-emerald-50 text-emerald-600' :
                     'bg-slate-50 text-slate-600'
                  }`}>
                     {confirmDialog.icon || <Info size={32} />}
@@ -1000,7 +1020,7 @@ const App: React.FC = () => {
                  <button onClick={confirmDialog.onConfirm} className={`w-full py-4 rounded-2xl font-black text-white transition-all active:scale-[0.98] ${
                     confirmDialog.variant === 'danger' ? 'bg-red-500 hover:bg-red-600' : 
                     confirmDialog.variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600' : 
-                    confirmDialog.variant === 'info' ? 'bg-blue-500 hover:bg-blue-600' :
+                    confirmDialog.variant === 'info' ? 'bg-emerald-500 hover:bg-emerald-600' :
                     'bg-slate-900 hover:bg-slate-800'
                  }`}>{confirmDialog.confirmLabel}</button>
                  {!confirmDialog.hideCancel && (
