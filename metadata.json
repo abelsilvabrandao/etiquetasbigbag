@@ -1,0 +1,5 @@
+{
+  "name": "Intermarítima Label Manager",
+  "description": "Professional port logistics tool for managing fertilizer labels for Intermarítima. Register products, search by name or code, and manage batch records.",
+  "requestFramePermissions": []
+}
