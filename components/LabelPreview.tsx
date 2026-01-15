@@ -19,16 +19,27 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
   return (
     <div className="bg-white text-black font-bold overflow-hidden print:w-[10.5cm] print:h-[16cm] w-[10.5cm] h-[16cm] flex flex-col items-center relative border border-gray-100 shadow-sm print:border-0 print:shadow-none">
       
-      {/* LOGOTIPO NO TOPO - ARQUIVO LOCAL (Sempre visível na tela, oculto na impressão) */}
-      <div className="print:hidden w-full flex justify-center pt-2 pb-1 shrink-0">
+      {/* ÁREA DE GUIA (FURO) E LOGOTIPO - APENAS VISUALIZAÇÃO EM TELA (Oculto na Impressão) */}
+      <div className="print:hidden w-full flex flex-col items-center pt-4 shrink-0">
+        
+        {/* Representação do furo da etiqueta (Bolinha tracejada) */}
+        <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center mb-3">
+          <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
+        </div>
+
+        {/* Logotipo */}
         <img 
-          src="/logo.png" 
+          src="logo-fertimaxi.png" 
           alt="Fertimaxi Logo" 
-          className="h-28 w-auto object-contain"
+          className="h-24 w-auto object-contain"
+          onError={(e) => {
+            // Log silencioso se a imagem não existir
+            (e.target as HTMLImageElement).style.opacity = '0.3';
+          }}
         />
       </div>
 
-      {/* ÁREA DE CONTEÚDO IMPRESSO - Ajustado para ocupar o espaço disponível */}
+      {/* ÁREA DE CONTEÚDO IMPRESSO - Esta parte é a que sai na impressora Zebra */}
       <div className="w-[10.2cm] flex flex-col gap-0 leading-[1.1] text-black z-10 flex-1 justify-center">
         
         {/* Cabeçalho da Empresa - Endereço e CNPJ */}
@@ -89,7 +100,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
                 </div>
 
                 {/* Coluna K2O */}
-                <div className="w-[18%] flex flex-col">
+                <div className="w-[18%] flex col flex-col">
                   <div className="text-center p-0.5 text-[10px] font-black uppercase">% K₂O</div>
                   <div className="flex-1 flex flex-col">
                     <div className="flex-1 flex flex-col items-center justify-center text-[8.5px] p-0.5 leading-none text-center font-black">
@@ -202,7 +213,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
         </div>
       </div>
 
-      {/* RODAPÉ DA ETIQUETA - APENAS VISUALIZAÇÃO */}
+      {/* RODAPÉ DA ETIQUETA - APENAS VISUALIZAÇÃO (Oculto na Impressão) */}
       <div className="print:hidden w-full shrink-0 flex flex-col items-center">
         <div className="w-full bg-[#A3C617] py-1.5 flex flex-col items-center text-white">
           <span className="text-[12px] font-black uppercase leading-none tracking-widest">FERTILIZANTE</span>
