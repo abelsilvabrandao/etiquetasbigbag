@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Search, Plus, Trash2, Printer, Edit2, Package, Tag, FileText, 
-  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye
+  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2
 } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 
@@ -732,6 +732,19 @@ const App: React.FC = () => {
         {view === 'generator' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div className="space-y-6 animate-in slide-in-from-left duration-500">
+              {/* Dica de Impressão (Printer Config Info) */}
+              <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 flex items-start gap-4 shadow-sm">
+                <div className="bg-amber-100 p-2 rounded-xl text-amber-700 shrink-0">
+                   <Settings2 size={20} />
+                </div>
+                <div>
+                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Dica de Impressão</p>
+                   <p className="text-amber-800 text-xs font-bold leading-relaxed">
+                     Para etiquetas perfeitas, no diálogo de impressão selecione as margens como <span className="underline font-black">"Nenhuma"</span> e escolha o tamanho do papel correspondente à etiqueta física.
+                   </p>
+                </div>
+              </div>
+
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -1184,7 +1197,7 @@ const App: React.FC = () => {
         {!isPrintingTerm && (selectedProduct || historyPrintRecord) && (
           <div className="flex flex-col items-center">
             {Array.from({ length: parseInt(historyPrintRecord ? historyPrintRecord.qty : labelQuantity) || 1 }).map((_, i) => (
-              <div key={i} className="page-break-after-always">
+              <div key={i} className="page-break">
                 <LabelPreview 
                   product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} 
                   session={historyPrintRecord ? historyPrintRecord.session : session} 
@@ -1201,7 +1214,7 @@ const App: React.FC = () => {
           @page { margin: 0; size: auto; }
           body { margin: 0; padding: 0; background: white !important; }
           .no-print { display: none !important; }
-          .page-break-after-always { page-break-after: always; }
+          .page-break { page-break-after: always; break-after: page; }
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 10px;
