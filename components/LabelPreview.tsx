@@ -36,7 +36,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
         <div className="h-24 w-full flex items-center justify-center overflow-hidden">
           {!imageError ? (
             <img 
-              src="/logo-fertimaxi.png" 
+              src="https://fertimaxi.com.br/wp-content/uploads/2019/11/logo-fertimaxi.png" 
               alt="Fertimaxi Logo" 
               className="h-full w-auto object-contain"
               onError={() => setImageError(true)}
@@ -51,7 +51,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
         </div>
       </div>
 
-      {/* ÁREA DE CONTEÚDO IMPRESSO - Zebra Zebra 10.5x16cm */}
+      {/* ÁREA DE CONTEÚDO IMPRESSO - Esta parte é a que sai na impressora Zebra */}
       <div className="w-[10.2cm] flex flex-col gap-0 leading-[1.1] text-black z-10 flex-1 justify-center">
         
         {/* Cabeçalho da Empresa - Endereço e CNPJ */}
@@ -63,11 +63,12 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
           <p>INDÚSTRIA BRASILEIRA</p>
         </div>
 
-        {/* Linha Superior */}
+        {/* Linha Superior - Divisória fina */}
         <div className="border-t-[1px] border-black mb-1 shrink-0"></div>
 
         {/* Bloco de Garantias Principais + Registro MAPA */}
         <div className="flex items-stretch gap-4 mb-1 shrink-0">
+          {/* Tabela de Garantias NPK */}
           <div className="flex-1 flex border-collapse">
             <div className="w-6 flex items-center justify-center py-1">
               <span className="rotate-[-90deg] text-[7.5px] font-black tracking-tight whitespace-nowrap uppercase">GARANTIAS</span>
@@ -127,6 +128,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
             </div>
           </div>
 
+          {/* Bloco Registro MAPA à Direita */}
           <div className="w-[3.8cm] flex flex-col items-center shrink-0">
             <div className="text-center text-[7.5px] font-black mb-1 uppercase">REG. PRODUTO NO MAPA</div>
             <div className="w-full border-[1.5px] border-black bg-white">
@@ -173,16 +175,19 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
           </table>
         </div>
 
+        {/* Separador de Informações Adicionais */}
         <div className="mt-1 border-t-[1px] border-b-[1px] border-black p-0.5 text-center text-[9px] font-black tracking-tight uppercase shrink-0">
           COMPONENTES DO PRODUTO / INFORMAÇÕES ADICIONAIS:
         </div>
 
+        {/* Nome do Produto */}
         <div className="flex items-center justify-center py-2 shrink-0">
           <div className="text-2xl font-black text-center leading-tight px-2 uppercase">
             {product.name}
           </div>
         </div>
 
+        {/* Natureza Física */}
         <div className="mt-1 flex flex-col shrink-0">
           <div className="border-t-[1px] border-b-[1px] border-black p-0.5 text-center text-[9.5px] font-black tracking-tight uppercase">
             ESPECIFICAÇÃO DE NATUREZA FÍSICA:
@@ -192,6 +197,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
           </div>
         </div>
 
+        {/* Tabela de Lote */}
         <table className="w-full border-b-[1.5px] border-black text-center text-[7.5px] font-bold border-collapse shrink-0">
           <thead>
             <tr className="border-b-[1.5px] border-black h-4">
@@ -213,12 +219,13 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
           </tbody>
         </table>
 
+        {/* Peso Final */}
         <div className="text-center py-2 text-5xl font-black uppercase tracking-tighter shrink-0">
           {formattedPeso} KG
         </div>
       </div>
 
-      {/* RODAPÉ DA ETIQUETA - APENAS VISUALIZAÇÃO */}
+      {/* RODAPÉ DA ETIQUETA - APENAS VISUALIZAÇÃO (Oculto na Impressão) */}
       <div className="print:hidden w-full shrink-0 flex flex-col items-center">
         <div className="w-full bg-[#A3C617] py-1.5 flex flex-col items-center text-white">
           <span className="text-[12px] font-black uppercase leading-none tracking-widest">FERTILIZANTE</span>
