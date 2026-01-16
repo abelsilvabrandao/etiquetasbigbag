@@ -1052,7 +1052,7 @@ const App: React.FC = () => {
 
       <div className="hidden print:block">
         {!isPrintingTerm && (selectedProduct || historyPrintRecord) && (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center print:pt-[2.5cm]">
             {Array.from({ length: parseInt(historyPrintRecord ? historyPrintRecord.qty : labelQuantity) || 1 }).map((_, i) => (
               <div key={i} className="page-break">
                 <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
