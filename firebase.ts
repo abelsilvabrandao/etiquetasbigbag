@@ -1,4 +1,5 @@
 
+// Fix: Ensure named exports are correctly imported from the Firebase modular SDK (v9+).
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
@@ -12,5 +13,6 @@ const firebaseConfig = {
   measurementId: "G-REL6C7GH76"
 };
 
+// Fix: Initialize Firebase using the correct modular API.
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);

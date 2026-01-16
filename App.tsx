@@ -47,6 +47,11 @@ const App: React.FC = () => {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [view, setView] = useState<AppView>('queue');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Filtros da Fila
+  const [queueSearchQuery, setQueueSearchQuery] = useState('');
+  const [queueStatusFilter, setQueueStatusFilter] = useState<QueueItem['status'] | 'all'>('all');
+
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyTermFilter, setHistoryTermFilter] = useState<'all' | 'with' | 'without'>('all');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -192,6 +197,21 @@ const App: React.FC = () => {
       return matchesSearch && matchesTerm;
     });
   }, [history, historySearchQuery, historyTermFilter]);
+
+  const filteredQueue = useMemo(() => {
+    return queue.filter(item => {
+      const search = queueSearchQuery.toLowerCase();
+      const matchesSearch = !search || 
+        item.placa.toLowerCase().includes(search) ||
+        item.carrier.toLowerCase().includes(search) ||
+        item.productName.toLowerCase().includes(search) ||
+        item.orderNumber.toLowerCase().includes(search);
+      
+      const matchesStatus = queueStatusFilter === 'all' || item.status === queueStatusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [queue, queueSearchQuery, queueStatusFilter]);
 
   const selectedProduct = useMemo(() => {
     return products.find(p => p.id === selectedProductId) || null;
@@ -649,18 +669,41 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto p-4 md:p-8 no-print">
         {view === 'queue' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
               <div>
                 <h2 className="text-3xl font-black">Fila de Carregamento</h2>
                 <p className="text-slate-500 font-bold">Importe e gerencie a ordem de carregamento dos veículos.</p>
               </div>
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+              <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
+                {/* Filtros da Fila */}
+                <div className="relative flex-1 md:min-w-[300px]">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Filtrar Placa, Produto ou Pedido..." 
+                    value={queueSearchQuery} 
+                    onChange={(e) => setQueueSearchQuery(e.target.value)} 
+                    className="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-emerald-500 transition-all shadow-sm" 
+                  />
+                </div>
+                <div className="flex bg-white border-2 border-slate-200 rounded-2xl p-1 shadow-sm">
+                  {[
+                    {id: 'all', label: 'TODOS'},
+                    {id: 'pending', label: 'PENDENTES'},
+                    {id: 'label_issued', label: 'ETIQUETADOS'},
+                    {id: 'completed', label: 'CONCLUÍDOS'}
+                  ].map(f => (
+                    <button key={f.id} onClick={() => setQueueStatusFilter(f.id as any)} className={`px-4 py-3 rounded-xl text-[10px] font-black transition-all ${queueStatusFilter === f.id ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
                 <input type="file" ref={fileInputRef} onChange={handlePdfImport} accept=".pdf" className="hidden" />
                 <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50">
-                  {isImporting ? <Clock className="animate-spin" size={20} /> : <FileUp size={20} />} IMPORTAR ORDEM (PDF)
+                  {isImporting ? <Clock className="animate-spin" size={20} /> : <FileUp size={20} />} <span className="hidden md:inline">IMPORTAR (PDF)</span>
                 </button>
                 <button onClick={clearQueue} className="bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95">
-                  <Trash2 size={20} /> LIMPAR FILA
+                  <Trash2 size={20} /> <span className="hidden md:inline">LIMPAR</span>
                 </button>
               </div>
             </div>
@@ -678,8 +721,8 @@ const App: React.FC = () => {
                       <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
                     </tr>
                   </thead>
-                  <Reorder.Group axis="y" values={queue} onReorder={handleReorder} as="tbody">
-                    {queue.length > 0 ? queue.map((item) => (
+                  <Reorder.Group axis="y" values={filteredQueue} onReorder={handleReorder} as="tbody">
+                    {filteredQueue.length > 0 ? filteredQueue.map((item) => (
                       <Reorder.Item key={item.id} value={item} as="tr" className={`hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0 ${item.status === 'completed' ? 'opacity-50 grayscale' : ''}`}>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
@@ -721,7 +764,7 @@ const App: React.FC = () => {
                         </td>
                       </Reorder.Item>
                     )) : (
-                      <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">Fila Vazia</td></tr>
+                      <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">Nenhum veículo encontrado</td></tr>
                     )}
                   </Reorder.Group>
                 </table>
