@@ -1049,13 +1049,10 @@ const App: React.FC = () => {
       {isProductModalOpen && ( <ProductForm onSave={handleSaveProduct} onCancel={() => { setIsProductModalOpen(false); setEditingProduct(undefined); }} initialProduct={editingProduct} /> )}
       {isTermModalOpen && ( <WithdrawalTermForm labelQuantity={labelQuantity} initialTruckPlate={session.placa} initialData={withdrawalData} onSave={handleTermSave} onCancel={() => setIsTermModalOpen(false)} /> )}
 
-      <div className="hidden print:block">
+      <div className="hidden print:block print-area">
         {!isPrintingTerm && (selectedProduct || historyPrintRecord) && (
-          <div className="flex flex-col items-center">
-            {/* Imprime apenas uma etiqueta; o usuário escolhe a quantidade na janela de impressão */}
-            <div className="page-break">
-              <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
-            </div>
+          <div className="page-break">
+            <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
           </div>
         )}
         {isPrintingTerm && withdrawalData && ( <WithdrawalTermPreview data={withdrawalData} /> )}
