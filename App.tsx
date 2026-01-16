@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Search, Plus, Trash2, Printer, Edit2, Package, Tag, FileText, 
-  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2, Save
+  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2, Save, FilePlus
 } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 
@@ -334,6 +334,7 @@ const App: React.FC = () => {
         closeConfirm();
         if (isReprint && record.driverName && record.driverCpf) {
           setWithdrawalData({
+            clientName: record.clientName || 'FERTIMAXI',
             driverName: record.driverName,
             driverCpf: record.driverCpf,
             carrier: record.carrier || '',
@@ -448,6 +449,7 @@ const App: React.FC = () => {
       const docRef = doc(db, 'history', currentLogId);
       await updateDoc(docRef, {
         termGenerated: true,
+        clientName: data.clientName,
         driverName: data.driverName,
         driverCpf: data.driverCpf,
         carrier: data.carrier,
@@ -458,11 +460,11 @@ const App: React.FC = () => {
     } else {
       const record: GenerationRecord = {
         timestamp: serverTimestamp(),
-        productName: selectedProduct?.name || '',
-        productCode: selectedProduct?.code || '',
-        lote: session.lote,
-        placa: session.placa,
-        tonelada: session.tonelada,
+        productName: selectedProduct?.name || 'EMISSÃO AVULSA',
+        productCode: selectedProduct?.code || 'AVULSO',
+        lote: session.lote || 'AVULSO',
+        placa: session.placa || data.truckPlate,
+        tonelada: session.tonelada || '0',
         labelsQuantity: labelQuantity,
         termGenerated: true,
         ...data
@@ -631,6 +633,9 @@ const App: React.FC = () => {
             <button onClick={() => setView('generator')} className={`px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${view === 'generator' ? 'bg-emerald-500 text-white' : 'hover:bg-white/10 text-slate-400'}`}>
               <Tag size={18} /> <span className="hidden md:inline">Gerador</span>
             </button>
+            <button onClick={() => setView('terms')} className={`px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${view === 'terms' ? 'bg-emerald-500 text-white' : 'hover:bg-white/10 text-slate-400'}`}>
+              <FilePlus size={18} /> <span className="hidden md:inline">Termos</span>
+            </button>
             <button onClick={() => setView('inventory')} className={`px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${view === 'inventory' ? 'bg-emerald-500 text-white' : 'hover:bg-white/10 text-slate-400'}`}>
               <Database size={18} /> <span className="hidden md:inline">Produtos</span>
             </button>
@@ -720,6 +725,38 @@ const App: React.FC = () => {
                     )}
                   </Reorder.Group>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'terms' && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-500 text-center">
+            <div className="bg-white rounded-3xl p-12 shadow-2xl border border-slate-100 max-w-lg w-full">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <FilePlus size={40} />
+              </div>
+              <h2 className="text-2xl font-black mb-3">Emissão de Termo Avulso</h2>
+              <p className="text-slate-500 font-bold mb-8">
+                Gere termos avulsos para carregamentos externos (CIBRA, etc) de forma independente do sistema de etiquetas.
+              </p>
+              <button 
+                onClick={() => {
+                  setCurrentLogId(null);
+                  setWithdrawalData(null);
+                  setIsTermModalOpen(true);
+                }} 
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-emerald-100 text-lg"
+              >
+                <Plus size={24} /> GERAR NOVO TERMO
+              </button>
+              <div className="mt-8 pt-8 border-t border-slate-50">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Clientes Suportados</p>
+                 <div className="flex items-center justify-center gap-4 mt-4 opacity-50 grayscale">
+                    <span className="text-xs font-black">FERTIMAXI</span>
+                    <span className="text-xs font-black">CIBRA</span>
+                    <span className="text-xs font-black">OUTROS</span>
+                 </div>
               </div>
             </div>
           </div>
@@ -829,7 +866,6 @@ const App: React.FC = () => {
             <div className="flex flex-col items-center gap-6 sticky top-28 animate-in slide-in-from-right duration-500">
               {selectedProduct ? (
                 <>
-                  {/* Widget Master: Totalizador + Dica Integrada */}
                   <div className="w-full bg-slate-900 rounded-3xl p-5 text-white flex items-center justify-between shadow-2xl shadow-slate-200 relative overflow-hidden group">
                     <div className="relative z-10 shrink-0">
                       <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Sugestão de Cópias</p>
@@ -854,7 +890,6 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Efeito visual de fundo */}
                     <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
                   </div>
 
@@ -928,7 +963,7 @@ const App: React.FC = () => {
                   <thead className="bg-slate-50/50">
                     <tr>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Data / Hora</th>
-                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto / Cliente</th>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Lote/Placa</th>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Motorista</th>
                       <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
@@ -943,7 +978,12 @@ const App: React.FC = () => {
                         </td>
                         <td className="px-6 py-5">
                           <p className="font-black text-slate-900 text-sm">{record.productName}</p>
-                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 rounded">{record.productCode}</span>
+                          <div className="flex gap-1 items-center mt-1">
+                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 rounded">{record.productCode}</span>
+                            {record.clientName && (
+                              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 rounded">{record.clientName}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col gap-1">

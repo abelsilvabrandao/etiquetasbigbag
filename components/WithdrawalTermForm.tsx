@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WithdrawalTermData } from '../types';
-import { X, Truck, Hash, ShieldCheck, Calendar, AlertCircle } from 'lucide-react';
+import { X, Truck, Hash, ShieldCheck, Calendar, AlertCircle, Building2 } from 'lucide-react';
 
 interface WithdrawalTermFormProps {
   labelQuantity: string;
@@ -19,6 +19,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
   onCancel 
 }) => {
   const [data, setData] = useState<WithdrawalTermData>(initialData || {
+    clientName: 'FERTIMAXI',
     driverName: '',
     driverCpf: '',
     carrier: '',
@@ -30,6 +31,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     hasSeals: true
   });
 
+  const [isCustomClient, setIsCustomClient] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
 
@@ -55,6 +57,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
 
   const validate = () => {
     const newErrors: string[] = [];
+    if (!data.clientName.trim()) newErrors.push('clientName');
     if (!data.driverName.trim()) newErrors.push('driverName');
     if (data.driverCpf.length < 14) newErrors.push('driverCpf');
     if (!data.carrier.trim()) newErrors.push('carrier');
@@ -73,22 +76,20 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     let processedValue = value;
-    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate') {
+    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate' || name === 'clientName') {
       processedValue = value.toUpperCase();
     } else if (name === 'driverCpf') {
       processedValue = formatCpf(value);
     } else if (name === 'labelsQuantity' || name === 'sealsQuantity') {
-      // Permitir apenas números para estes campos
       if (value !== '' && !/^\d+$/.test(value)) return;
     }
 
     setData(prev => ({ ...prev, [name]: processedValue }));
     
-    // Limpa erro do campo ao digitar
     if (touched) {
       setErrors(prev => prev.filter(err => err !== name));
     }
@@ -125,6 +126,47 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
           )}
 
           <section className="space-y-4">
+            {/* Campo Cliente */}
+            <div>
+              <label className={labelClasses}>
+                Cliente Portuário
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                {!isCustomClient ? (
+                  <select 
+                    name="clientName" 
+                    value={data.clientName} 
+                    onChange={handleChange} 
+                    className={`${getInputClasses('clientName')} flex-1`}
+                  >
+                    <option value="FERTIMAXI">FERTIMAXI</option>
+                    <option value="CIBRA">CIBRA</option>
+                    <option value="OUTRO">...OUTRO CLIENTE</option>
+                  </select>
+                ) : (
+                  <input 
+                    name="clientName" 
+                    value={data.clientName === 'OUTRO' ? '' : data.clientName} 
+                    onChange={handleChange} 
+                    className={getInputClasses('clientName')} 
+                    placeholder="DIGITE O NOME DO CLIENTE" 
+                    autoFocus
+                  />
+                )}
+                <button 
+                  onClick={() => {
+                    setIsCustomClient(!isCustomClient);
+                    if (isCustomClient) setData(prev => ({ ...prev, clientName: 'FERTIMAXI' }));
+                  }}
+                  className="mt-1 px-3 bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition-colors"
+                  title={isCustomClient ? "Voltar para lista" : "Digitar nome manualmente"}
+                >
+                  <Building2 size={18} />
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className={labelClasses}>
                 Nome do Motorista

@@ -34,6 +34,7 @@ export interface LabelSession {
 }
 
 export interface WithdrawalTermData {
+  clientName: string;
   driverName: string;
   driverCpf: string;
   carrier: string;
@@ -56,6 +57,7 @@ export interface GenerationRecord {
   tonelada: string;
   labelsQuantity: string;
   termGenerated: boolean;
+  clientName?: string;
   driverName?: string;
   driverCpf?: string;
   carrier?: string;
@@ -75,4 +77,4 @@ export interface QueueItem {
   status: 'pending' | 'label_issued' | 'completed';
 }
 
-export type AppView = 'generator' | 'inventory' | 'history' | 'queue';
+export type AppView = 'generator' | 'inventory' | 'history' | 'queue' | 'terms';

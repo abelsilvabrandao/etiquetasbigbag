@@ -23,6 +23,10 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
                 (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="bg-[#00703C] p-2 rounded-lg"><span class="text-white font-black italic text-xl tracking-tighter uppercase px-2">INTERMARÍTIMA</span></div>';
               }}
             />
+            <div className="text-right">
+               <p className="text-[9px] font-black text-[#00703C] uppercase tracking-widest">Documento Interno</p>
+               <p className="text-[9px] font-bold text-slate-400">Mod. LOG-GATE-001</p>
+            </div>
          </div>
          <div className="h-1 w-full bg-[#00703C]"></div>
       </div>
@@ -40,6 +44,10 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
           Identificação do Motorista e Veículo
         </div>
         <div className="grid grid-cols-[160px_1fr]">
+          {/* Nova linha para Cliente */}
+          <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">Cliente</div>
+          <div className="border-t-2 border-[#00703C] p-2 font-black uppercase text-[14px] text-emerald-800">{data.clientName || "FERTIMAXI"}</div>
+
           <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">Nome do Condutor</div>
           <div className="border-t-2 border-[#00703C] p-2 font-bold uppercase text-[13px]">{data.driverName || ""}</div>
           
@@ -118,11 +126,15 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
             
             <div className="flex items-center gap-4">
                 <img 
-                  src="/certificadoiso9001.png" 
+                  src="/selo_iso.png" 
                   alt="Selo ISO" 
                   className="h-12 w-auto grayscale opacity-80"
                   onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                 />
+                <div className="flex flex-col items-center border-l-2 border-slate-100 pl-4">
+                    <span className="text-[7px] text-slate-400 font-black">CERTIFICAÇÃO</span>
+                    <span className="text-[12px] text-slate-800 font-black">ISO 9001</span>
+                </div>
             </div>
           </div>
       </div>
