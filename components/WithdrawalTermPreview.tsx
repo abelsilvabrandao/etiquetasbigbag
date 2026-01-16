@@ -23,10 +23,6 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
                 (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="bg-[#00703C] p-2 rounded-lg"><span class="text-white font-black italic text-xl tracking-tighter uppercase px-2">INTERMARÍTIMA</span></div>';
               }}
             />
-            <div className="text-right">
-               <p className="text-[9px] font-black text-[#00703C] uppercase tracking-widest">Documento Interno</p>
-               <p className="text-[9px] font-bold text-slate-400">Mod. LOG-GATE-001</p>
-            </div>
          </div>
          <div className="h-1 w-full bg-[#00703C]"></div>
       </div>
@@ -127,10 +123,6 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
                   className="h-12 w-auto grayscale opacity-80"
                   onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                 />
-                <div className="flex flex-col items-center border-l-2 border-slate-100 pl-4">
-                    <span className="text-[7px] text-slate-400 font-black">CERTIFICAÇÃO</span>
-                    <span className="text-[12px] text-slate-800 font-black">ISO 9001</span>
-                </div>
             </div>
           </div>
       </div>
