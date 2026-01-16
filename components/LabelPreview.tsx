@@ -52,7 +52,7 @@ const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
       </div>
 
       {/* ÁREA DE CONTEÚDO IMPRESSO - Esta parte é a que sai na impressora Zebra */}
-      <div className="w-[10.2cm] flex flex-col gap-0 leading-[1.1] text-black z-10 flex-1 print:mt-[3cm]">
+      <div className="w-[10.2cm] flex flex-col gap-0 leading-[1.1] text-black z-10 flex-1 print:mt-[4cm]">
         
         {/* Cabeçalho da Empresa - Endereço e CNPJ */}
         <div className="text-center text-[7px] space-y-[0px] mb-1 font-bold uppercase shrink-0">
