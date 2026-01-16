@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Product, LabelSession } from '../types';
 
 interface LabelPreviewProps {
@@ -7,128 +7,235 @@ interface LabelPreviewProps {
   session: LabelSession;
 }
 
-// Map composition keys to readable names for the label
-const COMPOSITION_LABELS: Record<string, string> = {
-  nTotal: 'Nitrogênio (N) Total',
-  p2o5Cna: 'P2O5 Sol. em CNA + H2O',
-  p2o5Sol: 'P2O5 Solúvel em Água',
-  k2oSol: 'Potássio (K2O) Sol. Água',
-  s: 'Enxofre (S) Total',
-  ca: 'Cálcio (Ca) Total',
-  b: 'Boro (B) Total',
-  cu: 'Cobre (Cu) Total',
-  mn: 'Manganês (Mn) Total',
-  zn: 'Zinco (Zn) Total',
-  nbpt: 'Inibidor NBPT'
-};
+// Logo Fertimaxi em Base64 (Fallback de segurança)
+const LOGO_FERTIMAXI_BASE64 = "data:image/png;base64,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";
 
-// Fixed implementation of LabelPreview to properly display fertilizer label data
 const LabelPreview: React.FC<LabelPreviewProps> = ({ product, session }) => {
+  const [imageError, setImageError] = useState(false);
+
+  // Formata o peso para garantir o padrão milhar (Ex: 1.000)
+  const formattedPeso = useMemo(() => {
+    if (!session.peso) return "0.000";
+    const numericValue = parseInt(session.peso.replace(/\D/g, ''), 10);
+    if (isNaN(numericValue)) return session.peso;
+    return numericValue.toLocaleString('pt-BR');
+  }, [session.peso]);
+
   return (
-    <div className="bg-white text-black p-6 w-[10.5cm] min-h-[16cm] border-2 border-slate-200 flex flex-col font-sans text-xs shadow-inner">
-      {/* Header with Logo Area */}
-      <div className="border-b-4 border-[#00703C] pb-3 mb-4 flex justify-between items-center">
-        <div className="bg-[#00703C] p-2 rounded-lg">
-           <span className="text-white font-black italic text-xl tracking-tighter uppercase px-2">FERTIMAXI</span>
+    <div className="bg-white text-black font-bold overflow-hidden print:w-[10.5cm] print:h-[16cm] w-[10.5cm] h-[16cm] flex flex-col items-center relative border border-gray-100 shadow-sm print:border-0 print:shadow-none">
+      
+      {/* ÁREA DE GUIA (FURO) E LOGOTIPO - APENAS VISUALIZAÇÃO EM TELA (Oculto na Impressão) */}
+      <div className="print:hidden w-full flex flex-col items-center pt-4 shrink-0 px-4">
+        
+        {/* Representação do furo da etiqueta (Bolinha tracejada) */}
+        <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center mb-3">
+          <div className="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
         </div>
-        <div className="text-right">
-          <p className="font-black text-[9px] text-[#00703C] uppercase tracking-wider">Intermarítima Portos e Logística S/A</p>
-          <p className="text-[8px] text-slate-400 font-bold uppercase">CNPJ: 14.505.514/0001-34</p>
+
+        {/* Logotipo com Fallback de Imagem Base64 */}
+        <div className="h-24 w-full flex items-center justify-center overflow-hidden">
+          {!imageError ? (
+            <img 
+              src="https://fertimaxi.com.br/wp-content/uploads/2019/11/logo-fertimaxi.png" 
+              alt="Fertimaxi Logo" 
+              className="h-full w-auto object-contain"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <img 
+              src={LOGO_FERTIMAXI_BASE64}
+              alt="Fertimaxi Logo Fallback" 
+              className="h-full w-auto object-contain opacity-90"
+            />
+          )}
         </div>
       </div>
 
-      {/* Product Information Section */}
-      <div className="text-center mb-4">
-        <h1 className="text-2xl font-black uppercase leading-tight tracking-tight text-[#0F172A] mb-1">
-          {product.name}
-        </h1>
-        <div className="inline-block bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+      {/* ÁREA DE CONTEÚDO IMPRESSO - Esta parte é a que sai na impressora Zebra */}
+      <div className="w-[10.2cm] flex flex-col gap-0 leading-[1.1] text-black z-10 flex-1 justify-center">
+        
+        {/* Cabeçalho da Empresa - Endereço e CNPJ */}
+        <div className="text-center text-[7px] space-y-[0px] mb-1 font-bold uppercase shrink-0">
+          <p className="text-[11px] font-black">FERTIMAXI COMERCIO E SERVIÇO DE FERTILIZANTES EIRELI</p>
+          <p>BAIRRO: BR324, KM537 CONCEIÇÃO DO JACUIPE - BA</p>
+          <p>CNPJ: 08.068.476/0001-76 EP BA - 000541-0</p>
+          <p>CEP: 44245-000 TEL.: (75) 3257-2221</p>
+          <p>INDÚSTRIA BRASILEIRA</p>
+        </div>
+
+        {/* Linha Superior - Divisória fina */}
+        <div className="border-t-[1px] border-black mb-1 shrink-0"></div>
+
+        {/* Bloco de Garantias Principais + Registro MAPA */}
+        <div className="flex items-stretch gap-4 mb-1 shrink-0">
+          {/* Tabela de Garantias NPK */}
+          <div className="flex-1 flex border-collapse">
+            <div className="w-6 flex items-center justify-center py-1">
+              <span className="rotate-[-90deg] text-[7.5px] font-black tracking-tight whitespace-nowrap uppercase">GARANTIAS</span>
+            </div>
+
+            <div className="flex-1 flex flex-col border-[1.5px] border-black">
+              <div className="flex flex-1">
+                {/* Coluna N */}
+                <div className="w-[25%] flex flex-col border-r-[1.5px] border-black">
+                  <div className="flex-1 flex flex-col items-center justify-center p-0.5 text-center leading-none">
+                    <span className="text-[10px] font-black uppercase">% N</span>
+                    <span className="text-[7.5px] font-black uppercase">TOTAL</span>
+                  </div>
+                  <div className="border-t-[1.5px] border-black p-0.5 text-center text-[10.5px] font-black">
+                    {product.composition.nTotal || '0'}
+                  </div>
+                </div>
+
+                {/* Coluna P2O5 */}
+                <div className="flex-1 flex flex-col border-r-[1.5px] border-black">
+                  <div className="text-center p-0.5 text-[10px] font-black uppercase">% P₂O₅</div>
+                  <div className="flex flex-1 border-t-[1.5px] border-black">
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex-1 flex flex-col items-center justify-center text-[8.5px] p-0.5 leading-[1.1] text-center font-black">
+                        <span>sol. CNA +</span>
+                        <span className="uppercase">H₂O</span>
+                      </div>
+                      <div className="border-t-[1.5px] border-black p-0.5 text-center text-[10.5px] font-black">
+                        {product.composition.p2o5Cna || '0'}
+                      </div>
+                    </div>
+                    <div className="flex-1 flex flex-col border-l-[1.5px] border-black">
+                      <div className="flex-1 flex flex-col items-center justify-center text-[8.5px] p-0.5 leading-[1.1] text-center font-black">
+                        <span>sol. <span className="uppercase">H₂O</span></span>
+                      </div>
+                      <div className="border-t-[1.5px] border-black p-0.5 text-center text-[10.5px] font-black">
+                        {product.composition.p2o5Sol || '0'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coluna K2O */}
+                <div className="w-[18%] flex flex-col">
+                  <div className="text-center p-0.5 text-[10px] font-black uppercase">% K₂O</div>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex flex-col items-center justify-center text-[8.5px] p-0.5 leading-none text-center font-black">
+                      <span>sol.</span>
+                      <span className="uppercase">H2O</span>
+                    </div>
+                    <div className="border-t-[1.5px] border-black p-0.5 text-center text-[10.5px] font-black">
+                      {product.composition.k2oSol || '0'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bloco Registro MAPA à Direita */}
+          <div className="w-[3.8cm] flex flex-col items-center shrink-0">
+            <div className="text-center text-[7.5px] font-black mb-1 uppercase">REG. PRODUTO NO MAPA</div>
+            <div className="w-full border-[1.5px] border-black bg-white">
+              <div className="p-1 text-center font-black text-[9px] border-b-[1.5px] border-black leading-none min-h-[1.1rem] flex items-center justify-center uppercase">
+                {product.mapaReg}
+              </div>
+              <div className="flex items-center text-[7.5px] font-black uppercase p-1">
+                 <div className="whitespace-nowrap mr-1">APLICAÇÃO:</div>
+                 <div className="flex-1 text-center">{product.application}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Categoria do Produto */}
+        <div className="flex flex-col mb-1 pl-6 shrink-0">
+          <div className="text-center text-[8.5px] font-black py-0.5 uppercase tracking-wider">
             {product.category}
-          </p>
-        </div>
-      </div>
-
-      {/* Physical Nature Display */}
-      <div className="bg-emerald-50 p-2.5 rounded-xl mb-4 text-center border-2 border-emerald-100">
-        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em] block mb-0.5">Natureza Física</span>
-        <span className="text-[13px] font-black text-[#00703C] uppercase">{product.nature}</span>
-      </div>
-
-      {/* Guarantees Table */}
-      <div className="flex-1 space-y-3">
-        <div className="overflow-hidden rounded-xl border-2 border-slate-100">
-          <table className="w-full border-collapse">
+          </div>
+          
+          <table className="w-full border-[1.5px] border-black text-center text-[7px] table-fixed border-collapse">
             <thead>
-              <tr className="bg-slate-50">
-                <th className="border-b border-slate-100 p-2 text-left text-[9px] font-black uppercase text-slate-400 tracking-wider">Garantias do Produto</th>
-                <th className="border-b border-slate-100 p-2 text-center text-[9px] font-black uppercase text-slate-400 tracking-wider">% p/p</th>
+              <tr className="border-b-[1.5px] border-black h-4">
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% S</th>
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% Ca</th>
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% B</th>
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% Cu</th>
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% Mn</th>
+                <th className="border-r-[1.5px] border-black font-black text-[9.5px]">% Zn</th>
+                <th className="font-black text-[9.5px]">% NBPT</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(product.composition)
-                .filter(([_, v]) => v !== undefined && v !== null && v !== '0' && v !== '')
-                .map(([key, value]) => (
-                  <tr key={key} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                    <td className="p-2 font-bold uppercase text-[10px] text-slate-700">
-                      {COMPOSITION_LABELS[key] || key.toUpperCase()}
-                    </td>
-                    <td className="p-2 text-center font-black text-[12px] text-slate-900">
-                      {value}%
-                    </td>
-                  </tr>
-                ))}
+              <tr className="h-5">
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.s || ''}</td>
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.ca || ''}</td>
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.b || ''}</td>
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.cu || ''}</td>
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.mn || ''}</td>
+                <td className="border-r-[1.5px] border-black text-[10px] font-black">{product.composition.zn || ''}</td>
+                <td className="text-[10px] font-black">{product.composition.nbpt || ''}</td>
+              </tr>
             </tbody>
           </table>
         </div>
-        
-        {/* Registration MAPA Section */}
-        <div className="bg-slate-50 p-2 rounded-lg text-center border border-slate-100">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            REGISTRO NO MAPA Nº: <span className="text-slate-900 ml-1">{product.mapaReg}</span>
-          </p>
+
+        {/* Separador de Informações Adicionais */}
+        <div className="mt-1 border-t-[1px] border-b-[1px] border-black p-0.5 text-center text-[9px] font-black tracking-tight uppercase shrink-0">
+          COMPONENTES DO PRODUTO / INFORMAÇÕES ADICIONAIS:
+        </div>
+
+        {/* Nome do Produto */}
+        <div className="flex items-center justify-center py-2 shrink-0">
+          <div className="text-2xl font-black text-center leading-tight px-2 uppercase">
+            {product.name}
+          </div>
+        </div>
+
+        {/* Natureza Física */}
+        <div className="mt-1 flex flex-col shrink-0">
+          <div className="border-t-[1px] border-b-[1px] border-black p-0.5 text-center text-[9.5px] font-black tracking-tight uppercase">
+            ESPECIFICAÇÃO DE NATUREZA FÍSICA:
+          </div>
+          <div className="border-b-[1.5px] border-black text-center py-1.5 text-2xl font-black uppercase">
+            {product.nature}
+          </div>
+        </div>
+
+        {/* Tabela de Lote */}
+        <table className="w-full border-b-[1.5px] border-black text-center text-[7.5px] font-bold border-collapse shrink-0">
+          <thead>
+            <tr className="border-b-[1.5px] border-black h-4">
+              <th className="border-r-[1.5px] border-black uppercase w-[38%]">LOTE</th>
+              <th className="border-r-[1.5px] border-black uppercase w-[15%]">PLACA</th>
+              <th className="border-r-[1.5px] border-black uppercase w-[11%]">TON</th>
+              <th className="border-r-[1.5px] border-black uppercase w-[18%]">FABRICAÇÃO</th>
+              <th className="uppercase w-[18%]">VALIDO ATÉ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="h-7">
+              <td className="border-r-[1.5px] border-black text-[9.5px] font-black px-0.5 break-all leading-tight">{session.lote}</td>
+              <td className="border-r-[1.5px] border-black text-[9.5px] font-black px-0.5 break-all leading-tight">{session.placa}</td>
+              <td className="border-r-[1.5px] border-black text-[9.5px] font-black px-0.5">{session.tonelada}</td>
+              <td className="border-r-[1.5px] border-black text-[9.5px] font-black px-0.5">{session.fabricacao}</td>
+              <td className="text-[9.5px] font-black px-0.5">{session.validade}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Peso Final */}
+        <div className="text-center py-2 text-5xl font-black uppercase tracking-tighter shrink-0">
+          {formattedPeso} KG
         </div>
       </div>
 
-      {/* Batch and Session Traceability Info */}
-      <div className="mt-6 grid grid-cols-2 gap-4 border-t-2 border-slate-100 pt-4 bg-slate-50/50 p-3 rounded-2xl">
-        <div className="space-y-2">
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Lote</span>
-            <span className="text-[14px] font-black text-slate-900 tracking-tight">{session.lote || "--------"}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Placa Veículo</span>
-            <span className="text-[14px] font-black text-slate-900 tracking-tight">{session.placa || "-------"}</span>
-          </div>
+      {/* RODAPÉ DA ETIQUETA - APENAS VISUALIZAÇÃO (Oculto na Impressão) */}
+      <div className="print:hidden w-full shrink-0 flex flex-col items-center">
+        <div className="w-full bg-[#A3C617] py-1.5 flex flex-col items-center text-white">
+          <span className="text-[12px] font-black uppercase leading-none tracking-widest">FERTILIZANTE</span>
+          <span className="text-[7px] font-bold uppercase leading-none mt-0.5">Informações ao Consumidor no Verso.</span>
         </div>
-        <div className="space-y-2">
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Data de Fabricação</span>
-            <span className="text-[14px] font-black text-slate-900 tracking-tight">{session.fabricacao}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Prazo de Validade</span>
-            <span className="text-[14px] font-black text-slate-900 tracking-tight">{session.validade}</span>
-          </div>
+        <div className="py-2 text-black text-[8px] font-black uppercase tracking-widest">
+          INDÚSTRIA BRASILEIRA
         </div>
       </div>
 
-      {/* Net Weight Display Section */}
-      <div className="mt-4 bg-[#00703C] text-white p-3 rounded-2xl flex items-center justify-between shadow-lg shadow-emerald-100">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] ml-2">Peso Líquido</span>
-        <div className="flex items-baseline gap-1 mr-2">
-          <span className="text-2xl font-black italic leading-none">{session.peso}</span>
-          <span className="text-xs font-black italic uppercase">kg</span>
-        </div>
-      </div>
-
-      {/* Footer Instructions and Safety Warnings */}
-      <div className="mt-5 text-[8px] text-slate-500 leading-snug text-justify italic font-medium px-2">
-        <span className="font-bold uppercase not-italic">Cuidados:</span> Armazenar em local seco, ventilado e coberto. Evitar contato direto com o solo. 
-        Mantenha fora do alcance de crianças e animais domésticos. Para maiores informações sobre modo de uso e 
-        recomendações de aplicação, consulte um Engenheiro Agrônomo habilitado.
-      </div>
     </div>
   );
 };
