@@ -122,7 +122,7 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
             
             <div className="flex items-center gap-4">
                 <img 
-                  src="/selo_iso.png" 
+                  src="/certificadoiso9001.png" 
                   alt="Selo ISO" 
                   className="h-12 w-auto grayscale opacity-80"
                   onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
