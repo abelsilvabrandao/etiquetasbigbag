@@ -270,9 +270,9 @@ const App: React.FC = () => {
     e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
-      title: 'Reimprimir Etiquetas',
-      message: `Confirmar a impressão de ${record.labelsQuantity} etiquetas para o lote ${record.lote}?`,
-      confirmLabel: 'IMPRIMIR AGORA',
+      title: 'Gerar Etiqueta',
+      message: `Deseja gerar a etiqueta do lote ${record.lote} para impressão? (Escolha a quantidade na impressora)`,
+      confirmLabel: 'GERAR PARA IMPRESSÃO',
       variant: 'success',
       icon: <Printer size={24} />,
       onConfirm: () => {
@@ -288,7 +288,7 @@ const App: React.FC = () => {
               validade: '',
               peso: '1.000'
             },
-            qty: record.labelsQuantity
+            qty: '1'
           });
           setIsPrintingTerm(false);
           setPendingPrint('label');
@@ -430,8 +430,8 @@ const App: React.FC = () => {
     setConfirmDialog({
       isOpen: true,
       title: 'Confirmar Impressão',
-      message: `Serão impressas ${labelQuantity} etiquetas. Confirmar?`,
-      confirmLabel: 'IMPRIMIR AGORA',
+      message: `A etiqueta será gerada para impressão. Você deve escolher a quantidade de cópias na janela da impressora.`,
+      confirmLabel: 'GERAR ETIQUETA',
       variant: 'success',
       icon: <Printer size={24} />,
       onConfirm: () => {
@@ -820,7 +820,7 @@ const App: React.FC = () => {
                     </button>
 
                     <button onClick={handlePrintLabels} className="md:col-span-4 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-xl">
-                      <Printer size={24} /> IMPRIMIR ETIQUETAS
+                      <Printer size={24} /> GERAR ETIQUETA
                     </button>
                   </div>
                 </div>
@@ -844,7 +844,7 @@ const App: React.FC = () => {
                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-2xl max-w-[220px]">
                           <Settings2 className="text-amber-400 shrink-0" size={14} />
                           <p className="text-amber-100 text-[8px] font-bold uppercase leading-[1.3] tracking-wide text-left">
-                            Selecione margens como "Nenhuma" no diálogo de impressão para ajuste milimétrico.
+                            Defina a quantidade de cópias na janela de impressão do seu computador.
                           </p>
                        </div>
                     </div>
@@ -1052,12 +1052,11 @@ const App: React.FC = () => {
 
       <div className="hidden print:block">
         {!isPrintingTerm && (selectedProduct || historyPrintRecord) && (
-          <div className="flex flex-col items-center print:pt-[2.5cm]">
-            {Array.from({ length: parseInt(historyPrintRecord ? historyPrintRecord.qty : labelQuantity) || 1 }).map((_, i) => (
-              <div key={i} className="page-break">
+          <div className="flex flex-col items-center print:pt-[4cm]">
+             {/* Apenas uma etiqueta é gerada para que o colaborador escolha as cópias na bandeja */}
+             <div className="page-break">
                 <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
-              </div>
-            ))}
+             </div>
           </div>
         )}
         {isPrintingTerm && withdrawalData && ( <WithdrawalTermPreview data={withdrawalData} /> )}
