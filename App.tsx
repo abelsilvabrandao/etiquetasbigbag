@@ -154,7 +154,6 @@ const App: React.FC = () => {
 
   const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
-  // Helper para exibir diálogos customizados em vez de alerts
   const showCustomAlert = (title: string, message: string, variant: ConfirmDialogConfig['variant'] = 'info', icon?: React.ReactNode) => {
     setConfirmDialog({
       isOpen: true,
@@ -270,9 +269,9 @@ const App: React.FC = () => {
     e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
-      title: 'Gerar Etiqueta',
-      message: `Deseja gerar a etiqueta do lote ${record.lote} para impressão? (Escolha a quantidade na impressora)`,
-      confirmLabel: 'GERAR PARA IMPRESSÃO',
+      title: 'Imprimir Etiqueta',
+      message: `Deseja imprimir a etiqueta para o lote ${record.lote}? Informe ${record.labelsQuantity} cópias na janela de impressão.`,
+      confirmLabel: 'IMPRIMIR AGORA',
       variant: 'success',
       icon: <Printer size={24} />,
       onConfirm: () => {
@@ -430,8 +429,8 @@ const App: React.FC = () => {
     setConfirmDialog({
       isOpen: true,
       title: 'Confirmar Impressão',
-      message: `A etiqueta será gerada para impressão. Você deve escolher a quantidade de cópias na janela da impressora.`,
-      confirmLabel: 'GERAR ETIQUETA',
+      message: `Informe ${labelQuantity} cópias na próxima janela de impressão. Confirmar?`,
+      confirmLabel: 'ABRIR IMPRESSÃO',
       variant: 'success',
       icon: <Printer size={24} />,
       onConfirm: () => {
@@ -820,7 +819,7 @@ const App: React.FC = () => {
                     </button>
 
                     <button onClick={handlePrintLabels} className="md:col-span-4 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 text-xl">
-                      <Printer size={24} /> GERAR ETIQUETA
+                      <Printer size={24} /> IMPRIMIR ETIQUETAS
                     </button>
                   </div>
                 </div>
@@ -833,7 +832,7 @@ const App: React.FC = () => {
                   {/* Widget Master: Totalizador + Dica Integrada */}
                   <div className="w-full bg-slate-900 rounded-3xl p-5 text-white flex items-center justify-between shadow-2xl shadow-slate-200 relative overflow-hidden group">
                     <div className="relative z-10 shrink-0">
-                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Total de Etiquetas</p>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">Sugestão de Cópias</p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-black text-emerald-400">{labelQuantity}</span>
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Unids</span>
@@ -842,9 +841,9 @@ const App: React.FC = () => {
 
                     <div className="flex-1 px-4 text-center relative z-10 hidden md:flex flex-col items-center">
                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-2xl max-w-[220px]">
-                          <Settings2 className="text-amber-400 shrink-0" size={14} />
+                          <Info className="text-amber-400 shrink-0" size={14} />
                           <p className="text-amber-100 text-[8px] font-bold uppercase leading-[1.3] tracking-wide text-left">
-                            Defina a quantidade de cópias na janela de impressão do seu computador.
+                            Informe o número {labelQuantity} no campo "Cópias" da próxima tela de impressão.
                           </p>
                        </div>
                     </div>
@@ -1052,11 +1051,11 @@ const App: React.FC = () => {
 
       <div className="hidden print:block">
         {!isPrintingTerm && (selectedProduct || historyPrintRecord) && (
-          <div className="flex flex-col items-center print:pt-[4cm]">
-             {/* Apenas uma etiqueta é gerada para que o colaborador escolha as cópias na bandeja */}
-             <div className="page-break">
-                <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
-             </div>
+          <div className="flex flex-col items-center">
+            {/* Imprime apenas uma etiqueta; o usuário escolhe a quantidade na janela de impressão */}
+            <div className="page-break">
+              <LabelPreview product={historyPrintRecord ? historyPrintRecord.product : selectedProduct!} session={historyPrintRecord ? historyPrintRecord.session : session} />
+            </div>
           </div>
         )}
         {isPrintingTerm && withdrawalData && ( <WithdrawalTermPreview data={withdrawalData} /> )}
