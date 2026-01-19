@@ -75,6 +75,7 @@ export interface QueueItem {
   quantity: string;
   orderNumber: string;
   status: 'pending' | 'label_issued' | 'completed';
+  importedAt?: string;
 }
 
 export type AppView = 'generator' | 'inventory' | 'history' | 'queue' | 'terms';

@@ -213,6 +213,11 @@ const App: React.FC = () => {
     });
   }, [queue, queueSearchQuery, queueStatusFilter]);
 
+  const importTimestamp = useMemo(() => {
+    if (queue.length === 0) return null;
+    return queue[0].importedAt || null;
+  }, [queue]);
+
   const selectedProduct = useMemo(() => {
     return products.find(p => p.id === selectedProductId) || null;
   }, [products, selectedProductId]);
@@ -551,6 +556,7 @@ const App: React.FC = () => {
         const newItems: QueueItem[] = [];
         let match;
         let count = queue.length + 1;
+        const now = new Date().toLocaleString('pt-BR');
         while ((match = rowRegex.exec(fullText)) !== null) {
           const [_, ordemOrig, placa, carrier, prodRaw, especie, qty, pedido] = match;
           
@@ -562,7 +568,8 @@ const App: React.FC = () => {
             productName: prodRaw.toUpperCase(),
             quantity: qty,
             orderNumber: pedido,
-            status: 'pending'
+            status: 'pending',
+            importedAt: now
           });
         }
 
@@ -619,6 +626,37 @@ const App: React.FC = () => {
     setView('generator');
   };
 
+  const handleGenerateTermFromQueue = (item: QueueItem) => {
+    setSession(prev => ({
+      ...prev,
+      placa: item.placa,
+      tonelada: item.quantity
+    }));
+    
+    // Calcula quantidade sugerida
+    const tonVal = parseFloat(item.quantity.replace(',', '.'));
+    let suggestQty = '1';
+    if (!isNaN(tonVal)) {
+      suggestQty = Math.max(1, tonVal % 1 <= 0.5 ? Math.floor(tonVal) : Math.ceil(tonVal)).toString();
+    }
+    setLabelQuantity(suggestQty);
+
+    setWithdrawalData({
+      clientName: 'FERTIMAXI',
+      driverName: '',
+      driverCpf: '',
+      carrier: item.carrier,
+      truckPlate: item.placa,
+      date: new Date().toLocaleDateString('pt-BR'),
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      sealsQuantity: suggestQty,
+      labelsQuantity: suggestQty,
+      hasSeals: true
+    });
+    
+    setIsTermModalOpen(true);
+  };
+
   const clearQueue = () => {
     setConfirmDialog({
       isOpen: true,
@@ -673,6 +711,11 @@ const App: React.FC = () => {
               <div>
                 <h2 className="text-3xl font-black">Fila de Carregamento</h2>
                 <p className="text-slate-500 font-bold">Importe e gerencie a ordem de carregamento dos veículos.</p>
+                {importTimestamp && (
+                  <p className="text-emerald-600 text-xs font-black uppercase mt-2 bg-emerald-50 px-3 py-1 rounded-full inline-block">
+                    Lista importada em: {importTimestamp}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
                 {/* Filtros da Fila */}
@@ -751,9 +794,14 @@ const App: React.FC = () => {
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-end gap-2">
                              {item.status !== 'completed' && (
-                               <button onClick={() => handleGenerateFromQueue(item)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-emerald-100">
-                                 <Tag size={14} /> GERAR
-                               </button>
+                               <div className="flex gap-2">
+                                 <button onClick={() => handleGenerateFromQueue(item)} title="Gerar Etiqueta" className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-emerald-100">
+                                   <Tag size={14} /> <span className="hidden sm:inline">ETIQUETA</span>
+                                 </button>
+                                 <button onClick={() => handleGenerateTermFromQueue(item)} title="Gerar Termo" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-100">
+                                   <FileText size={14} /> <span className="hidden sm:inline">TERMO</span>
+                                 </button>
+                               </div>
                              )}
                              <div className="flex bg-slate-100 p-1 rounded-xl">
                                <button onClick={() => handleQueueStatusChange(item.id, 'label_issued')} className={`p-2 rounded-lg transition-all ${item.status === 'label_issued' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}><Printer size={16} /></button>
