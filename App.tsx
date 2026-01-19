@@ -958,22 +958,91 @@ const App: React.FC = () => {
                 <Plus size={20} /> NOVO PRODUTO
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <div className="grid grid-cols-1 gap-6">
               {products.map(p => (
-                <div key={p.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="bg-slate-50 p-3 rounded-2xl font-black text-xs text-slate-500">{p.code}</div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => { setEditingProduct(p); setIsProductModalOpen(true); }} className="p-2 text-blue-600 rounded-lg hover:bg-blue-50"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-600 rounded-lg hover:bg-red-50"><Trash2 size={16} /></button>
+                <div key={p.id} className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-xl hover:shadow-2xl transition-all group relative overflow-hidden">
+                  {/* Decoração de fundo */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-bl-[100%] pointer-events-none opacity-50"></div>
+                  
+                  <div className="flex flex-col lg:flex-row gap-10">
+                    {/* Coluna de Identificação */}
+                    <div className="lg:w-1/3 space-y-6">
+                      <div className="flex items-center gap-3">
+                         <div className="bg-slate-900 text-white px-4 py-1.5 rounded-xl font-black text-xs uppercase tracking-widest">{p.code}</div>
+                         <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">{p.nature}</div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h3 className="text-3xl font-black text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors uppercase">{p.name}</h3>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.category}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                           <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Registro MAPA</span>
+                           <span className="font-bold text-slate-700 text-xs">{p.mapaReg}</span>
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                           <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Aplicação</span>
+                           <span className="font-bold text-slate-700 text-xs uppercase">{p.application}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-4">
+                        <button onClick={() => { setEditingProduct(p); setIsProductModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"><Edit2 size={14} /> EDITAR</button>
+                        <button onClick={() => handleDeleteProduct(p.id)} className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18} /></button>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="text-xl font-black leading-tight">{p.name}</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">{p.nature}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(p.composition).filter(([_, v]) => v && v !== '0').map(([k, v]) => (
-                        <div key={k} className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">{k}: {v}%</div>
-                    ))}
+
+                    {/* Coluna de Garantias (Grades Técnicas) */}
+                    <div className="lg:w-2/3 flex flex-col gap-6">
+                       {/* Seção NPK */}
+                       <div className="space-y-3">
+                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Macronutrientes Primários</h4>
+                         <div className="grid grid-cols-4 border-2 border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                           <div className="bg-slate-50 border-r border-slate-100 p-4 text-center">
+                              <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">% N TOTAL</span>
+                              <span className="text-xl font-black text-slate-900">{p.composition.nTotal || '0'}</span>
+                           </div>
+                           <div className="bg-white border-r border-slate-100 p-4 text-center">
+                              <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">% P₂O₅ (CNA)</span>
+                              <span className="text-xl font-black text-slate-900">{p.composition.p2o5Cna || '0'}</span>
+                           </div>
+                           <div className="bg-white border-r border-slate-100 p-4 text-center">
+                              <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">% P₂O₅ (SOL)</span>
+                              <span className="text-xl font-black text-slate-900">{p.composition.p2o5Sol || '0'}</span>
+                           </div>
+                           <div className="bg-slate-50 p-4 text-center">
+                              <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">% K₂O (SOL)</span>
+                              <span className="text-xl font-black text-slate-900">{p.composition.k2oSol || '0'}</span>
+                           </div>
+                         </div>
+                       </div>
+
+                       {/* Seção Micros e Outros */}
+                       <div className="space-y-3">
+                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Micronutrientes e Adicionais</h4>
+                         <div className="grid grid-cols-7 border-2 border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                           {[
+                             {label: '% S', value: p.composition.s},
+                             {label: '% Ca', value: p.composition.ca},
+                             {label: '% B', value: p.composition.b},
+                             {label: '% Cu', value: p.composition.cu},
+                             {label: '% Mn', value: p.composition.mn},
+                             {label: '% Zn', value: p.composition.zn},
+                             {label: '% NBPT', value: p.composition.nbpt},
+                           ].map((item, idx) => (
+                             <div key={idx} className={`p-4 text-center border-r border-slate-100 last:border-0 ${item.value && item.value !== '0' ? 'bg-emerald-50/30' : 'bg-white'}`}>
+                               <span className="block text-[9px] font-black text-slate-400 uppercase mb-1">{item.label}</span>
+                               <span className={`text-sm font-black ${item.value && item.value !== '0' ? 'text-emerald-700' : 'text-slate-300'}`}>
+                                 {item.value || '-'}
+                               </span>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                    </div>
                   </div>
                 </div>
               ))}
