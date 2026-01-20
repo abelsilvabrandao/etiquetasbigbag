@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Search, Plus, Trash2, Printer, Edit2, Package, Tag, FileText, 
-  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2, Save, FilePlus
+  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, Filter, XCircle, Truck, AlertTriangle, Info, X, Weight, Anchor, ListOrdered, FileUp, GripVertical, Check, ExternalLink, Calendar, Eye, Settings2, Save, FilePlus, FlaskConical
 } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 
@@ -569,6 +569,7 @@ const App: React.FC = () => {
             quantity: qty,
             orderNumber: pedido,
             status: 'pending',
+            sampleLabelDelivered: false,
             importedAt: now
           });
         }
@@ -593,6 +594,10 @@ const App: React.FC = () => {
 
   const handleQueueStatusChange = async (id: string, newStatus: QueueItem['status']) => {
     await updateDoc(doc(db, 'queue', id), { status: newStatus });
+  };
+
+  const handleToggleSampleLabel = async (id: string, currentStatus: boolean) => {
+    await updateDoc(doc(db, 'queue', id), { sampleLabelDelivered: !currentStatus });
   };
 
   const handleRemoveQueueItem = async (id: string) => {
@@ -760,6 +765,7 @@ const App: React.FC = () => {
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Placa</th>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Transportador / Pedido</th>
                       <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto / Qtd</th>
+                      <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Amostra</th>
                       <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                       <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
                     </tr>
@@ -785,10 +791,29 @@ const App: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-5 text-center">
+                          <button 
+                            onClick={() => handleToggleSampleLabel(item.id, !!item.sampleLabelDelivered)}
+                            className={`p-3 rounded-2xl transition-all flex flex-col items-center gap-1 group/btn ${item.sampleLabelDelivered ? 'bg-amber-100 text-amber-600 shadow-inner' : 'bg-slate-50 text-slate-300 hover:bg-slate-100'}`}
+                            title={item.sampleLabelDelivered ? "Amostra Entregue" : "Marcar Amostra Entregue"}
+                          >
+                             <FlaskConical size={20} className={item.sampleLabelDelivered ? 'animate-pulse' : ''} />
+                             <span className={`text-[8px] font-black uppercase tracking-tighter ${item.sampleLabelDelivered ? 'text-amber-600' : 'text-slate-400 opacity-0 group-hover/btn:opacity-100'}`}>
+                               {item.sampleLabelDelivered ? 'ENTREGUE' : 'PENDENTE'}
+                             </span>
+                          </button>
+                        </td>
+                        <td className="px-6 py-5 text-center">
                           <div className="flex flex-col items-center gap-1.5">
                             {item.status === 'pending' && <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Pendente</span>}
                             {item.status === 'label_issued' && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Etiqueta Emitida</span>}
                             {item.status === 'completed' && <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Concluído</span>}
+                            
+                            {item.sampleLabelDelivered && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <FlaskConical size={10} className="text-amber-500" />
+                                <span className="text-[7px] font-black text-amber-500 uppercase">Amostra OK</span>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-5">
@@ -812,7 +837,7 @@ const App: React.FC = () => {
                         </td>
                       </Reorder.Item>
                     )) : (
-                      <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">Nenhum veículo encontrado</td></tr>
+                      <tr><td colSpan={7} className="px-6 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">Nenhum veículo encontrado</td></tr>
                     )}
                   </Reorder.Group>
                 </table>

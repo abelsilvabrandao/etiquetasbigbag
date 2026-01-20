@@ -75,6 +75,7 @@ export interface QueueItem {
   quantity: string;
   orderNumber: string;
   status: 'pending' | 'label_issued' | 'completed';
+  sampleLabelDelivered?: boolean;
   importedAt?: string;
 }
 
