@@ -6,6 +6,7 @@ import { X, Truck, Hash, ShieldCheck, Calendar, AlertCircle, Building2 } from 'l
 interface WithdrawalTermFormProps {
   labelQuantity: string;
   initialTruckPlate?: string;
+  initialLote?: string;
   initialData?: WithdrawalTermData | null;
   onSave: (data: WithdrawalTermData) => void;
   onCancel: () => void;
@@ -14,6 +15,7 @@ interface WithdrawalTermFormProps {
 const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({ 
   labelQuantity, 
   initialTruckPlate = '', 
+  initialLote = '',
   initialData,
   onSave, 
   onCancel 
@@ -24,6 +26,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     driverCpf: '',
     carrier: '',
     truckPlate: initialTruckPlate,
+    lote: initialLote,
     date: new Date().toLocaleDateString('pt-BR'),
     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     sealsQuantity: labelQuantity,
@@ -80,7 +83,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     const { name, value } = e.target;
     
     let processedValue = value;
-    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate' || name === 'clientName') {
+    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate' || name === 'clientName' || name === 'lote') {
       processedValue = value.toUpperCase();
     } else if (name === 'driverCpf') {
       processedValue = formatCpf(value);
@@ -197,30 +200,38 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
               </div>
               <div>
                 <label className={labelClasses}>
-                  Placa Cavalo
-                  <span className="text-red-500">*</span>
+                  Lote
                 </label>
                 <input 
-                  name="truckPlate" 
-                  value={data.truckPlate} 
+                  name="lote" 
+                  value={data.lote} 
                   onChange={handleChange} 
-                  className={getInputClasses('truckPlate')} 
-                  placeholder="ABC-1234" 
+                  className={getInputClasses('lote')} 
+                  placeholder="NÚMERO DO LOTE" 
                 />
               </div>
             </div>
             <div>
               <label className={labelClasses}>
-                Transportadora
+                Transportadora / Placa Cavalo
                 <span className="text-red-500">*</span>
               </label>
-              <input 
-                name="carrier" 
-                value={data.carrier} 
-                onChange={handleChange} 
-                className={getInputClasses('carrier')} 
-                placeholder="NOME DA EMPRESA" 
-              />
+              <div className="flex gap-2">
+                <input 
+                  name="carrier" 
+                  value={data.carrier} 
+                  onChange={handleChange} 
+                  className={`${getInputClasses('carrier')} flex-[2]`} 
+                  placeholder="NOME DA EMPRESA" 
+                />
+                <input 
+                  name="truckPlate" 
+                  value={data.truckPlate} 
+                  onChange={handleChange} 
+                  className={`${getInputClasses('truckPlate')} flex-1`} 
+                  placeholder="ABC-1234" 
+                />
+              </div>
             </div>
           </section>
 

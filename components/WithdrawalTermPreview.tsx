@@ -7,6 +7,24 @@ interface WithdrawalTermPreviewProps {
 }
 
 const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) => {
+  // Lógica para exibição combinada de Pedido e Lote
+  const hasOrder = !!data.orderNumber && data.orderNumber.trim() !== "";
+  const hasLote = !!data.lote && data.lote.trim() !== "" && data.lote !== "AVULSO";
+
+  let combinedLabel = "";
+  let combinedValue = "";
+
+  if (hasOrder && hasLote) {
+    combinedLabel = "Pedido / Lote";
+    combinedValue = `${data.orderNumber} - ${data.lote}`;
+  } else if (hasOrder) {
+    combinedLabel = "Pedido";
+    combinedValue = data.orderNumber!;
+  } else if (hasLote) {
+    combinedLabel = "Lote";
+    combinedValue = data.lote!;
+  }
+
   return (
     <div className="bg-white text-black p-[1.2cm] w-[21cm] h-[29.7cm] flex flex-col font-sans text-sm leading-tight print:m-0 print:p-[1.2cm]">
       
@@ -55,6 +73,13 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
           
           <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">Placa do Veículo</div>
           <div className="border-t-2 border-[#00703C] p-2 font-black uppercase text-[15px] text-[#00703C]">{data.truckPlate || ""}</div>
+
+          {(hasOrder || hasLote) && (
+            <>
+              <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">{combinedLabel}</div>
+              <div className="border-t-2 border-[#00703C] p-2 font-bold uppercase text-[13px]">{combinedValue}</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -120,14 +145,13 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
                 <p className="text-emerald-700 font-black mt-0.5">www.intermaritima.com.br</p>
             </div>
             
-            <div className="flex items-center gap-4">
-                <img 
-                  src="/certificadoiso9001.png"
-                  alt="Selo ISO" 
-                  className="h-12 w-auto grayscale opacity-80"
-                  onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                />
-            </div>
+<div className="flex items-center gap-4 shrink-0">
+  <img 
+    src="/certificadoiso9001.png"
+    className="h-12 w-auto grayscale opacity-80 shrink-0"
+  />
+</div>
+
           </div>
       </div>
     </div>
