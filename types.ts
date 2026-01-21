@@ -21,7 +21,7 @@ export interface Product {
   id: string;
   code: string;
   name: string;
-  clientName: 'FERTIMAXI' | 'CIBRA';
+  clientName?: 'FERTIMAXI' | 'CIBRA';
   mapaReg: string;
   application: string;
   category: string;

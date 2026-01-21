@@ -1550,7 +1550,18 @@ const App: React.FC = () => {
                     {!confirmDialog.hideCancel && (
                       <button onClick={closeConfirm} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
                     )}
-                    <button onClick={confirmDialog.onConfirm} className={`flex-1 py-4 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 ${confirmDialog.variant === 'danger' ? 'bg-red-500 shadow-red-100 hover:bg-red-600' : confirmDialog.variant === 'success' ? 'bg-emerald-500 shadow-emerald-100 hover:bg-emerald-600' : confirmDialog.variant === 'success' ? 'bg-emerald-500 shadow-emerald-100 hover:bg-emerald-600' : 'bg-blue-500 shadow-blue-100 hover:bg-blue-600'}`}>{confirmDialog.confirmLabel}</button>
+                    <button
+                      onClick={confirmDialog.onConfirm}
+                      className={`flex-1 py-4 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 ${
+                        confirmDialog.variant === 'danger'
+                          ? 'bg-red-500 shadow-red-100 hover:bg-red-600'
+                          : confirmDialog.variant === 'success'
+                            ? 'bg-emerald-500 shadow-emerald-100 hover:bg-emerald-600'
+                            : 'bg-blue-500 shadow-blue-100 hover:bg-blue-600'
+                      }`}
+                    >
+                      {confirmDialog.confirmLabel}
+                    </button>
                  </div>
               </div>
            </div>
