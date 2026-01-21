@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Product, LabelSession } from '../types';
 
@@ -7,181 +8,163 @@ interface LabelPreviewProps {
 }
 
 // Logo Cibra em Base64 para garantir exibição (Versão simplificada e leve)
-const LOGO_CIBRA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABACAMAAAC976SRAAAAnFBMVEX///8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv9xY2m9AAAAUnRSTlMAAwUKDB0eHygpLi86O0BEQUVGR0hMTU5PVFZZWl1fYGVmZ2pvcnN3eHt9f3+ChYaHiIyNjo+QlJaXmZudn6Cho6Spqqyur7Czs7W2t7i5ur6/wMXGx+D2fFEAAAMdSURBVGje7ZjbchMxDEXBySXOJRda6P3/P7ZJSW90OmmZ7N00zD6vU9IInmNRpXre7/f7/f7X0mUo0vR0H8rE78rC70un21M9/D3V6S5VvFOfE8SuvQm0p90EmqfNCPdqNoL6VMPfMWh3GNRp9X0m7x6mOfLpXp/6U8z3O6O+I+pPMXpYp/6SgYdh9HBIdD8W/F0M7keCh+HgoCw8HAoPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCo/zB76mYv+pLvep5O5U/O/9AV8m8TyA+v1+v9/v9/uf7A9u438uG0DndwAAAABJRU5ErkJggg==";
+const LOGO_CIBRA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABACAMAAAC976SRAAAAnFBMVEX///8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv8Aqv9xY2m9AAAAUnRSTlMAAwUKDB0eHygpLi86O0BEQUVGR0hMTU5PVFZZWl1fYGVmZ2pvcnN3eHt9f3+ChYaHiIyNjo+QlJaXmZudn6Cho6Spqqyur7Czs7W2t7i5ur6/wMXGx+D2fFEAAAMdSURBVGje7ZjbchMxDEXBySXOJRda6P3/P7ZJSW90OmmZ7N00zD6vU9IInmNRpXre7/f7/f7X0mUo0vR0H8rE78rC70un21M9/D3V6S5VvFOfE8SuvQm0p90EmqfNCPdqNoL6VMPfMWh3GNRp9X0m7x6mOfLpXp/6U8z3O6O+I+pPMXpYp/6SgYdh9HBIdD8W/F0M7keCh+HgoCw8HAoPh8LDofBwKDwvCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCg+HwsOh8HAoPBwKD4fCw6HwcCg8HAgPh8LDofBwKDwcCo/zB76mYv+pLvep5O5U/O/9AV8m8TyA+v1+v9/v9/uf7A9u438uG0DndwAAAABJRU5ErkJggg==";
 
 // Logo Fertimaxi em Base64
-const LOGO_FERTIMAXI_BASE64 = "data:image/png;base64,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";
+const LOGO_FERTIMAXI_BASE64 = "data:image/png;base64,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";
 
 const CibraLabel: React.FC<LabelPreviewProps> = ({ product, session }) => {
   const [logoError, setLogoError] = useState(false);
   return (
-    <div className="bg-white text-black font-sans font-bold overflow-hidden print:w-[10.5cm] print:h-[10.5cm] w-[10.5cm] h-[10.5cm] flex flex-col items-center relative border-[1px] border-black shadow-none print:border-[1px] p-2 leading-none">
+    <div className="bg-white text-black font-sans font-bold overflow-hidden print:w-[10cm] print:h-[7cm] w-[10cm] h-[7cm] flex flex-col items-center relative border-[1px] border-black shadow-none print:border-[1px] p-1.5 leading-none">
       
-      {/* Header CIBRA */}
-      <div className="w-full flex justify-between items-start mb-1 px-1 shrink-0">
-        <div className="flex flex-col pt-1">
+      {/* Header CIBRA - Mais compacto */}
+      <div className="w-full flex justify-between items-start mb-0.5 px-0.5 shrink-0">
+        <div className="flex flex-col pt-0.5">
           {!logoError ? (
             <img
               src="/logo-cibra-registrada.png"
               alt="Cibra Logo"
-              className="h-10 w-auto object-contain"
+              className="h-7 w-auto object-contain"
               onError={() => setLogoError(true)}
             />
           ) : (
             <img
               src={LOGO_CIBRA_BASE64}
               alt="Cibra Logo Fallback"
-              className="h-10 w-auto object-contain"
+              className="h-7 w-auto object-contain"
             />
           )}
         </div>
-        <div className="text-[7.5px] text-right font-black leading-[1.2] pt-1">
-          <p className="text-[10px] tracking-tighter font-black">CIA BRASILEIRA FERTILIZANTES</p>
+        <div className="text-[6.5px] text-right font-black leading-tight pt-0.5">
+          <p className="text-[8px] tracking-tighter font-black">CIA BRASILEIRA FERTILIZANTES</p>
           <p>CNPJ: 00.117.842/0005-51 IE: 1246.638.55</p>
           <p>V MATOIM, BRACO BC - CIA NORTE - CANDEIAS / BA</p>
           <p>CEP: 43813-000</p>
         </div>
       </div>
 
-      {/* Seção Garantias */}
-      <div className="w-full border-[1.5px] border-black mb-0 shrink-0">
-        <div className="flex h-[72px]">
-           <div className="flex-1 flex flex-col border-r-[1.5px] border-black">
-              <div className="bg-zinc-900 text-white text-center text-[12px] py-1 font-black uppercase tracking-widest border-b-[1.5px] border-black">GARANTIAS</div>
+      {/* Seção Garantias - Altura reduzida para caber nos 7cm */}
+      <div className="w-full border-[1.2px] border-black mb-0 shrink-0">
+        <div className="flex h-[58px]">
+           <div className="flex-1 flex flex-col border-r-[1.2px] border-black">
+              <div className="bg-zinc-900 text-white text-center text-[9px] py-0.5 font-black uppercase tracking-wider border-b-[1.2px] border-black">GARANTIAS</div>
               {/* Garantias Primárias Grid Unificado */}
               <div className="flex bg-white flex-1">
                  <div className="flex-1 border-r border-black flex flex-col justify-center">
-                    <div className="text-center h-8 flex flex-col justify-center border-b border-black">
-                       <span className="text-[10px] font-black leading-tight">% N</span>
-                       <span className="text-[10px] font-black leading-tight">Total</span>
+                    <div className="text-center h-6 flex flex-col justify-center border-b border-black">
+                       <span className="text-[8px] font-black leading-tight">% N</span>
+                       <span className="text-[7px] font-black leading-tight">Total</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center text-[18px] font-black">{product.composition.nTotal || '00'}</div>
+                    <div className="flex-1 flex items-center justify-center text-[14px] font-black">{product.composition.nTotal || '00'}</div>
                  </div>
                  <div className="flex-1 border-r border-black flex flex-col justify-center">
-                    <div className="text-center h-8 flex flex-col justify-center border-b border-black">
-                       <span className="text-[9px] font-black leading-tight">% P₂O₅</span>
-                       <span className="text-[7px] font-black leading-tight">Sol.CNA+Água</span>
+                    <div className="text-center h-6 flex flex-col justify-center border-b border-black">
+                       <span className="text-[8px] font-black leading-tight">% P₂O₅</span>
+                       <span className="text-[6px] font-black leading-tight">Sol.CNA+H₂O</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center text-[18px] font-black">{product.composition.p2o5Cna || '00'}</div>
+                    <div className="flex-1 flex items-center justify-center text-[14px] font-black">{product.composition.p2o5Cna || '00'}</div>
                  </div>
                  <div className="flex-1 border-r border-black flex flex-col justify-center">
-                    <div className="text-center h-8 flex flex-col justify-center border-b border-black">
-                       <span className="text-[9px] font-black leading-tight">% P₂O₅</span>
-                       <span className="text-[7px] font-black leading-tight">Sol. Água</span>
+                    <div className="text-center h-6 flex flex-col justify-center border-b border-black">
+                       <span className="text-[8px] font-black leading-tight">% P₂O₅</span>
+                       <span className="text-[6px] font-black leading-tight">Sol. Água</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center text-[18px] font-black">{product.composition.p2o5Sol || '00'}</div>
+                    <div className="flex-1 flex items-center justify-center text-[14px] font-black">{product.composition.p2o5Sol || '00'}</div>
                  </div>
                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="text-center h-8 flex flex-col justify-center border-b border-black">
-                       <span className="text-[9px] font-black leading-tight">% K₂O</span>
-                       <span className="text-[7px] font-black leading-tight">Sol. Água</span>
+                    <div className="text-center h-6 flex flex-col justify-center border-b border-black">
+                       <span className="text-[8px] font-black leading-tight">% K₂O</span>
+                       <span className="text-[6px] font-black leading-tight">Sol. Água</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center text-[18px] font-black">{product.composition.k2oSol || '00'}</div>
+                    <div className="flex-1 flex items-center justify-center text-[14px] font-black">{product.composition.k2oSol || '00'}</div>
                  </div>
               </div>
            </div>
            {/* Reg. MAPA e EP BA */}
-           <div className="w-[125px] flex flex-col">
-              <div className="bg-white text-black text-center text-[10px] py-1 font-black h-7 border-b-[1.5px] border-black flex items-center justify-center tracking-tight leading-none">
+           <div className="w-[100px] flex flex-col">
+              <div className="bg-white text-black text-center text-[8px] py-0.5 font-black h-6 border-b-[1.2px] border-black flex items-center justify-center tracking-tight leading-none">
                 {product.epBa || 'EP BA 000939-3'}
               </div>
-              <div className="flex-1 flex flex-col items-center justify-center p-1 text-center leading-none">
-                 <span className="text-[13px] font-black mb-0.5">Reg. Produto</span>
-                 <span className="text-[11px] font-black">{product.mapaReg || 'BA000773-0.000090'}</span>
+              <div className="flex-1 flex flex-col items-center justify-center p-0.5 text-center leading-none">
+                 <span className="text-[10px] font-black mb-0.5">Reg. Produto</span>
+                 <span className="text-[9px] font-black">{product.mapaReg || 'BA000773-0.000090'}</span>
               </div>
            </div>
         </div>
 
-        {/* Micros Grid Unificado - Linhas verticais completas */}
-        <div className="flex text-center border-t-[1.5px] border-black font-black uppercase bg-white">
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">% Mg</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.mg || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">% Ca</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.ca || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">% S</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.s || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">% SO4</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.so4 || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">% B</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.b || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">%Cu</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.cu || '-'}</div>
-           </div>
-           <div className="flex-1 border-r border-black flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">%Mn</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.mn || '-'}</div>
-           </div>
-           <div className="flex-1 flex flex-col">
-              <div className="text-[8.5px] py-0.5 border-b border-black">%Zn</div>
-              <div className="text-[13px] h-7 flex items-center justify-center">{product.composition.zn || '-'}</div>
-           </div>
+        {/* Micros Grid Unificado - Linhas compactas */}
+        <div className="flex text-center border-t-[1.2px] border-black font-black uppercase bg-white">
+           {[
+             { label: '% Mg', value: product.composition.mg },
+             { label: '% Ca', value: product.composition.ca },
+             { label: '% S', value: product.composition.s },
+             { label: '% SO4', value: product.composition.so4 },
+             { label: '% B', value: product.composition.b },
+             { label: '% Cu', value: product.composition.cu },
+             { label: '% Mn', value: product.composition.mn },
+             { label: '% Zn', value: product.composition.zn }
+           ].map((item, idx, arr) => (
+             <div key={idx} className={`flex-1 flex flex-col ${idx !== arr.length - 1 ? 'border-r border-black' : ''}`}>
+                <div className="text-[7.5px] py-0.5 border-b border-black leading-none">{item.label}</div>
+                <div className="text-[10px] h-5.5 flex items-center justify-center">{item.value || '-'}</div>
+             </div>
+           ))}
         </div>
       </div>
 
-      {/* Info Adicional / Nome do Produto */}
-      <div className="w-full border-[1.5px] border-black border-t-0 mb-0 shrink-0">
-         <div className="bg-zinc-900 text-white text-center text-[11px] py-1 font-black uppercase tracking-tight border-b-[1.5px] border-black">COMPONENTES DO PRODUTO / INFORMAÇÕES ADICIONAIS</div>
-         <div className="text-xl font-black text-center py-1.5 uppercase leading-none min-h-[40px] flex items-center justify-center tracking-tight px-4">
+      {/* Info Adicional / Nome do Produto - Ajuste de espaçamento acima do nome */}
+      <div className="w-full border-[1.2px] border-black border-t-0 mb-0 shrink-0">
+         <div className="bg-zinc-900 text-white text-center text-[9px] py-0.5 font-black uppercase tracking-tight border-b-[1.2px] border-black">COMPONENTES DO PRODUTO / INFORMAÇÕES ADICIONAIS</div>
+         <div className="text-[14px] font-black text-center py-0.5 uppercase leading-tight min-h-[22px] flex items-center justify-center tracking-tight px-3">
            {product.name}
          </div>
-         <div className="bg-zinc-900 text-white text-center font-black uppercase border-t-[1.5px] border-black flex flex-col justify-center py-0.5 leading-tight">
-            <span className="text-[9px]">APLICAÇÃO VIA SOLO</span>
-            <span className="text-[9px]">INDÚSTRIA BRASILEIRA</span>
+         <div className="bg-zinc-900 text-white text-center font-black uppercase border-t-[1.2px] border-black flex flex-col justify-center py-0.5 leading-tight">
+            <span className="text-[7.5px]">APLICAÇÃO VIA SOLO • INDÚSTRIA BRASILEIRA</span>
          </div>
       </div>
 
-      {/* Natureza e Marca - Estrutura de Tabela com Linhas Contínuas */}
-      <div className="w-full text-[10px] border-[1.5px] border-black border-t-0 font-black bg-white shrink-0 flex flex-col">
-         <div className="text-center uppercase text-[11px] pt-3.5 pb-0.5">
+      {/* Natureza e Marca */}
+      <div className="w-full text-[8.5px] border-[1.2px] border-black border-t-0 font-black bg-white shrink-0 flex flex-col">
+         <div className="text-center uppercase text-[9px] py-1">
             FERTILIZANTE MINERAL SIMPLES
          </div>
-         <div className="flex border-b border-black pb-2.5">
-            <div className="flex-1 px-2 uppercase tracking-tighter">
-               MARCA: <span className="font-black text-[12px]">CIBRA</span>
+         <div className="flex border-b border-black pb-1 px-1">
+            <div className="flex-1 uppercase tracking-tighter">
+               MARCA: <span className="font-black text-[10px]">CIBRA</span>
             </div>
-            <div className="flex-1 px-2 uppercase tracking-tighter">
-               PESO LÍQUIDO: <span className="font-black text-[12px]">{session.peso} KG</span>
+            <div className="flex-1 text-right uppercase tracking-tighter">
+               PESO LÍQUIDO: <span className="font-black text-[10px]">{session.peso} KG</span>
             </div>
          </div>
          <div className="flex">
-            <div className="flex-1 p-1 px-2 border-r border-black uppercase tracking-tighter">
-               NATUREZA FÍSICA: <span className="font-black text-[12px] uppercase">{product.nature}</span>
+            <div className="flex-1 p-0.5 px-1 border-r border-black uppercase tracking-tighter">
+               NATUREZA: <span className="font-black text-[10px] uppercase">{product.nature}</span>
             </div>
-            <div className="flex-1 p-1 px-2 uppercase tracking-tighter">
-               ADITIVO: <span className="font-black text-[12px]">{product.composition.aditivo === '-' ? '' : (product.composition.aditivo || '')}</span>
+            <div className="flex-1 p-0.5 px-1 uppercase tracking-tighter">
+               ADITIVO: <span className="font-black text-[10px]">{product.composition.aditivo === '-' ? '' : (product.composition.aditivo || '')}</span>
             </div>
          </div>
       </div>
 
-      {/* Rastreabilidade - Grid Unificado para Linhas Verticais Contínuas */}
-      <div className="w-full border-[1.5px] border-black border-t-0 shrink-0 flex flex-col">
+      {/* Rastreabilidade - Redução do espaçamento vertical h-8 para h-5.5 */}
+      <div className="w-full border-[1.2px] border-black border-t-0 shrink-0 flex flex-col">
          <div className="flex bg-white flex-1">
             <div className="flex-1 border-r border-black flex flex-col">
-               <div className="text-center text-[9px] font-black uppercase py-0.5 border-b border-black">LOTE Nº:</div>
-               <div className="h-10 flex items-center justify-center text-[12px] font-black tracking-tighter px-0.5">{session.lote}</div>
+               <div className="text-center text-[7.5px] font-black uppercase py-0.5 border-b border-black">LOTE Nº:</div>
+               <div className="h-[22px] flex items-center justify-center text-[10px] font-black tracking-tighter px-0.5">{session.lote}</div>
             </div>
             <div className="flex-1 border-r border-black flex flex-col">
-               <div className="text-center text-[9px] font-black uppercase py-0.5 border-b border-black">QTD KG</div>
-               <div className="h-10 flex items-center justify-center text-[11px] font-black">{session.tonelada}</div>
+               <div className="text-center text-[7.5px] font-black uppercase py-0.5 border-b border-black">QTD KG</div>
+               <div className="h-[22px] flex items-center justify-center text-[10px] font-black">{session.tonelada}</div>
             </div>
             <div className="flex-1 border-r border-black flex flex-col">
-               <div className="text-center text-[9px] font-black uppercase py-0.5 border-b border-black">FABRICADO:</div>
-               <div className="h-10 flex items-center justify-center text-[10px] font-black">{session.fabricacao}</div>
+               <div className="text-center text-[7.5px] font-black uppercase py-0.5 border-b border-black">FABRICAÇÃO:</div>
+               <div className="h-[22px] flex items-center justify-center text-[9px] font-black">{session.fabricacao}</div>
             </div>
             <div className="flex-1 flex flex-col">
-               <div className="text-center text-[9px] font-black uppercase py-0.5 border-b border-black">VÁLIDO ATÉ:</div>
-               <div className="h-10 flex items-center justify-center text-[10px] font-black">{session.validade}</div>
+               <div className="text-center text-[7.5px] font-black uppercase py-0.5 border-b border-black">VÁLIDO ATÉ:</div>
+               <div className="h-[22px] flex items-center justify-center text-[9px] font-black">{session.validade}</div>
             </div>
          </div>
       </div>
