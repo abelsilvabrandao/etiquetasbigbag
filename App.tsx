@@ -24,9 +24,9 @@ import {
 } from 'firebase/firestore';
 import { 
   Search, Plus, Trash2, Printer, Edit2, Tag, FileText, 
-  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, AlertTriangle, Info, X, Anchor, ListOrdered, FileUp, GripVertical, Check, Eye, Save, FilePlus, FlaskConical, ClipboardCheck, XCircle, FileDown, Filter, LayoutDashboard, BarChart3, PieChart, TrendingUp
+  ChevronRight, Database, CheckCircle2, History, Clock, RotateCcw, Copy, AlertTriangle, Info, X, Anchor, ListOrdered, FileUp, GripVertical, Check, Eye, Save, FilePlus, FlaskConical, ClipboardCheck, XCircle, FileDown, Filter, LayoutDashboard, BarChart3, PieChart, TrendingUp, ArrowRightLeft, MapPin
 } from 'lucide-react';
-import { motion, Reorder } from 'framer-motion';
+import { motion, Reorder, AnimatePresence } from 'framer-motion';
 
 declare const pdfjsLib: any;
 declare const XLSX: any;
@@ -66,6 +66,10 @@ const App: React.FC = () => {
   const [isPreviewTermOpen, setIsPreviewTermOpen] = useState(false);
   const [withdrawalData, setWithdrawalData] = useState<WithdrawalTermData | null>(null);
   const [isPrintingTerm, setIsPrintingTerm] = useState(false);
+
+  // Estados para o novo mapeamento de produto da fila
+  const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+  const [itemToMap, setItemToMap] = useState<QueueItem | null>(null);
 
   const [currentLogId, setCurrentLogId] = useState<string | null>(null);
   const [pendingPrint, setPendingPrint] = useState<'label' | 'term' | null>(null);
@@ -248,11 +252,9 @@ const App: React.FC = () => {
     if (isNaN(qtyVal)) return 0;
 
     if (isCibra) {
-      // Para CIBRA, quantity é KG total → 1000 KG por etiqueta
       return Math.max(1, Math.ceil(qtyVal / 1000));
     }
 
-    // Para demais clientes, quantity é TON → arredondamento igual ao gerador
     const decimalPart = qtyVal % 1;
     const rounded = decimalPart <= 0.5 ? Math.floor(qtyVal) : Math.ceil(qtyVal);
     return Math.max(1, rounded);
@@ -772,26 +774,31 @@ const App: React.FC = () => {
   };
 
   const handleGenerateFromQueue = (item: QueueItem) => {
-    const matchingProduct = products.find(p => 
-      item.productName.toUpperCase().includes(p.name.toUpperCase()) ||
-      p.name.toUpperCase().includes(item.productName.toUpperCase())
-    );
+    setItemToMap(item);
+    setIsMappingModalOpen(true);
+  };
 
-    setSelectedProductId(matchingProduct?.id || null);
+  const confirmMapping = (item: QueueItem, product: Product) => {
+    setSelectedProductId(product.id);
+    
+    const isCibra = product.clientName === 'CIBRA';
+    
     setSession(prev => ({
       ...prev,
       placa: item.placa,
-      tonelada: matchingProduct?.clientName === 'CIBRA' ? item.quantity.replace(/\./g, '').replace(',', '') : item.quantity,
+      tonelada: isCibra ? item.quantity.replace(/\./g, '').replace(',', '') : item.quantity,
       lote: '',
-      peso: matchingProduct?.clientName === 'CIBRA' ? '1000' : '1.000'
+      peso: isCibra ? '1000' : '1.000'
     }));
     
-    if (matchingProduct?.clientName === 'CIBRA') {
+    if (isCibra) {
       const numeric = item.quantity.replace(/\D/g, '');
       const formatted = parseInt(numeric, 10).toLocaleString('pt-BR');
       setSession(prev => ({ ...prev, tonelada: formatted }));
     }
 
+    setIsMappingModalOpen(false);
+    setItemToMap(null);
     setView('generator');
   };
 
@@ -945,7 +952,6 @@ const App: React.FC = () => {
                 <p className="text-slate-500 font-bold">Monitoramento de performance e prontidão da unidade.</p>
              </div>
 
-             {/* KPIs Rápidos */}
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl flex items-center gap-5">
                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center shadow-inner">
@@ -987,7 +993,6 @@ const App: React.FC = () => {
              </div>
 
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Distribuição por Cliente */}
                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-8">
                    <div className="flex items-center justify-between">
                       <h3 className="text-xl font-black flex items-center gap-3">
@@ -1034,7 +1039,6 @@ const App: React.FC = () => {
                    </div>
                 </div>
 
-                {/* Status da Fila Atual */}
                 <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-8">
                    <div className="flex items-center justify-between">
                       <h3 className="text-xl font-black flex items-center gap-3">
@@ -1534,6 +1538,18 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* MODAL DE MAPEAMENTO DE PRODUTO DA FILA */}
+      <AnimatePresence>
+        {isMappingModalOpen && itemToMap && (
+          <QueueProductMappingModal 
+            item={itemToMap}
+            products={products}
+            onConfirm={confirmMapping}
+            onCancel={() => { setIsMappingModalOpen(false); setItemToMap(null); }}
+          />
+        )}
+      </AnimatePresence>
+
       {isProductModalOpen && ( <ProductForm onSave={handleSaveProduct} onCancel={() => { setIsProductModalOpen(false); setEditingProduct(undefined); }} initialProduct={editingProduct} /> )}
       {isTermModalOpen && ( <WithdrawalTermForm labelQuantity={labelQuantity} initialTruckPlate={session.placa} initialData={withdrawalData} initialLote={session.lote} onSave={handleTermSave} onCancel={() => setIsTermModalOpen(false)} /> )}
       
@@ -1550,18 +1566,7 @@ const App: React.FC = () => {
                     {!confirmDialog.hideCancel && (
                       <button onClick={closeConfirm} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
                     )}
-                    <button
-                      onClick={confirmDialog.onConfirm}
-                      className={`flex-1 py-4 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 ${
-                        confirmDialog.variant === 'danger'
-                          ? 'bg-red-500 shadow-red-100 hover:bg-red-600'
-                          : confirmDialog.variant === 'success'
-                            ? 'bg-emerald-500 shadow-emerald-100 hover:bg-emerald-600'
-                            : 'bg-blue-500 shadow-blue-100 hover:bg-blue-600'
-                      }`}
-                    >
-                      {confirmDialog.confirmLabel}
-                    </button>
+                    <button onClick={confirmDialog.onConfirm} className={`flex-1 py-4 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 ${confirmDialog.variant === 'danger' ? 'bg-red-500 shadow-red-100 hover:bg-red-600' : confirmDialog.variant === 'success' ? 'bg-emerald-500 shadow-emerald-100 hover:bg-emerald-600' : 'bg-blue-500 shadow-blue-100 hover:bg-blue-600'}`}>{confirmDialog.confirmLabel}</button>
                  </div>
               </div>
            </div>
@@ -1615,6 +1620,151 @@ const App: React.FC = () => {
         )}
         {isPrintingTerm && withdrawalData && ( <WithdrawalTermPreview data={withdrawalData} /> )}
       </div>
+    </div>
+  );
+};
+
+// COMPONENTE MODAL DE MAPEAMENTO DE PRODUTO
+const QueueProductMappingModal: React.FC<{
+  item: QueueItem;
+  products: Product[];
+  onConfirm: (item: QueueItem, product: Product) => void;
+  onCancel: () => void;
+}> = ({ item, products, onConfirm, onCancel }) => {
+  const [selectedClient, setSelectedClient] = useState<'FERTIMAXI' | 'CIBRA'>('FERTIMAXI');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  // Efeito de pré-seleção inteligente
+  useEffect(() => {
+    const itemLower = item.productName.toLowerCase();
+    
+    // Tenta encontrar um produto que bata o nome
+    const match = products.find(p => 
+      itemLower.includes(p.name.toLowerCase()) || 
+      p.name.toLowerCase().includes(itemLower)
+    );
+
+    if (match) {
+      setSelectedClient(match.clientName || 'FERTIMAXI');
+      setSelectedProductId(match.id);
+    }
+  }, [item, products]);
+
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      const isCorrectClient = p.clientName === selectedClient;
+      const matchesSearch = !searchTerm || 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.code.toLowerCase().includes(searchTerm.toLowerCase());
+      return isCorrectClient && matchesSearch;
+    });
+  }, [products, selectedClient, searchTerm]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110] no-print">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        <div className="bg-slate-900 p-8 text-white flex justify-between items-center shrink-0">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <ArrowRightLeft className="text-emerald-400" size={20} />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Vincular Produto da Fila</span>
+            </div>
+            <h2 className="text-2xl font-black">Mapeamento de Emissão</h2>
+          </div>
+          <button onClick={onCancel} className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all"><X size={20} /></button>
+        </div>
+
+        <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
+          {/* Card do Item Original */}
+          <div className="bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 relative overflow-hidden">
+            <div className="flex justify-between items-start relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto Importado (PDF)</p>
+                <h4 className="text-xl font-black text-slate-900 uppercase">{item.productName}</h4>
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-xs font-black text-slate-600">PLACA: {item.placa}</span>
+                  <span className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-xs font-black text-slate-600">QTD: {item.quantity} TON/KG</span>
+                </div>
+              </div>
+              <div className="bg-emerald-500/10 p-3 rounded-2xl text-emerald-600">
+                <Tag size={24} />
+              </div>
+            </div>
+            <MapPin className="absolute -bottom-6 -right-6 text-slate-200/50" size={120} />
+          </div>
+
+          {/* Seleção de Cliente */}
+          <div className="space-y-4">
+             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Selecione o Cliente do Cadastro</label>
+             <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => { setSelectedClient('FERTIMAXI'); setSelectedProductId(null); }}
+                  className={`py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border-2 ${selectedClient === 'FERTIMAXI' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                >
+                  FERTIMAXI
+                </button>
+                <button 
+                  onClick={() => { setSelectedClient('CIBRA'); setSelectedProductId(null); }}
+                  className={`py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border-2 ${selectedClient === 'CIBRA' ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-100' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                >
+                  CIBRA
+                </button>
+             </div>
+          </div>
+
+          {/* Seleção de Produto */}
+          <div className="space-y-4">
+            <div className="relative">
+               <input 
+                type="text" 
+                placeholder="Pesquisar produto no cadastro..." 
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-emerald-500 transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+               />
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            </div>
+
+            <div className="space-y-2 max-h-[200px] overflow-y-auto no-scrollbar pr-2">
+              {filtered.length > 0 ? filtered.map(p => (
+                <button 
+                  key={p.id} 
+                  onClick={() => setSelectedProductId(p.id)}
+                  className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${selectedProductId === p.id ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-50 bg-white hover:border-slate-200'}`}
+                >
+                  <div className="text-left">
+                    <p className="font-black text-slate-900 text-sm">{p.name}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{p.code} • {p.nature}</p>
+                  </div>
+                  {selectedProductId === p.id && <CheckCircle2 size={20} className="text-emerald-500" />}
+                </button>
+              )) : (
+                <div className="py-10 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Nenhum produto encontrado neste cliente</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 border-t border-slate-100 flex gap-4 shrink-0 bg-slate-50/50">
+          <button onClick={onCancel} className="flex-1 py-5 bg-white border-2 border-slate-200 text-slate-500 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-50 transition-all">CANCELAR</button>
+          <button 
+            disabled={!selectedProductId}
+            onClick={() => {
+              const prod = products.find(p => p.id === selectedProductId);
+              if (prod) onConfirm(item, prod);
+            }}
+            className="flex-[2] py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all disabled:opacity-50 active:scale-95"
+          >
+            VINCULAR E GERAR ETIQUETA
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };
