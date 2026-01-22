@@ -61,7 +61,7 @@ const CibraLabel: React.FC<LabelPreviewProps> = ({ product, session }) => {
                  <div className="flex-1 border-r border-black flex flex-col justify-center">
                     <div className="text-center h-6 flex flex-col justify-center border-b border-black">
                        <span className="text-[8px] font-black leading-tight">% P₂O₅</span>
-                       <span className="text-[6px] font-black leading-tight">Sol.CNA+H₂O</span>
+                       <span className="text-[6px] font-black leading-tight">Sol.CNA+Água</span>
                     </div>
                     <div className="flex-1 flex items-center justify-center text-[14px] font-black">{product.composition.p2o5Cna || '00'}</div>
                  </div>
