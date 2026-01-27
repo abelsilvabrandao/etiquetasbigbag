@@ -10,7 +10,7 @@ interface ProductFormProps {
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ onSave, onCancel, initialProduct }) => {
-  const [formData, setFormData] = useState<Product>(initialProduct || {
+  const defaultProduct: Product = {
     id: crypto.randomUUID(),
     code: '',
     clientName: 'FERTIMAXI',
@@ -36,7 +36,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, onCancel, initialProd
       so4: '-',
       aditivo: '-'
     }
-  });
+  };
+
+  const [formData, setFormData] = useState<Product>(
+    initialProduct
+      ? {
+          ...defaultProduct,
+          ...initialProduct,
+          composition: {
+            ...defaultProduct.composition,
+            ...initialProduct.composition,
+          },
+        }
+      : defaultProduct
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -108,6 +121,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, onCancel, initialProd
                     <option value="GRANULADO">GRANULADO</option>
                     <option value="FARELADO">FARELADO</option>
                     <option value="MISTURA DE GRANULOS">MISTURA DE GRANULOS</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>Aplicação</label>
+                  <select
+                    name="application"
+                    value={formData.application}
+                    onChange={handleChange}
+                    className={inputClasses}
+                  >
+                    <option value="VIA SOLO">VIA SOLO</option>
+                    <option value="FOLIAR">FOLIAR</option>
+                    <option value="FERTIRRIGAÇÃO">FERTIRRIGAÇÃO</option>
                   </select>
                 </div>
               </div>
