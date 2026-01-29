@@ -53,6 +53,8 @@ export interface WithdrawalTermData {
   sampleLabelDelivered?: boolean;
   orderNumber?: string;
   lote?: string;
+  productName?: string;
+  tonelada?: string;
 }
 
 export interface GenerationRecord {

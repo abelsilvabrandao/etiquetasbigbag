@@ -25,6 +25,10 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
     combinedValue = data.lote!;
   }
 
+  // Lógica para exibição de Produto e Quantidade
+  const unit = data.clientName === 'CIBRA' ? 'KG' : 'TON';
+  const productQuantityValue = `${data.productName || 'N/A'} - ${data.tonelada || '0'} ${unit}`;
+
   return (
     <div className="bg-white text-black p-[1.2cm] w-[21cm] h-[29.7cm] flex flex-col font-sans text-sm leading-tight print:m-0 print:p-[1.2cm]">
       
@@ -73,6 +77,10 @@ const WithdrawalTermPreview: React.FC<WithdrawalTermPreviewProps> = ({ data }) =
           
           <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">Placa do Veículo</div>
           <div className="border-t-2 border-[#00703C] p-2 font-black uppercase text-[15px] text-[#00703C]">{data.truckPlate || ""}</div>
+
+          {/* Nova linha solicitada: PRODUTO / QUANTIDADE */}
+          <div className="border-t-2 border-r-2 border-[#00703C] p-2 font-bold uppercase text-[10px] bg-slate-50 flex items-center">Produto / Quantidade</div>
+          <div className="border-t-2 border-[#00703C] p-2 font-black uppercase text-[14px] text-emerald-800">{productQuantityValue}</div>
 
           {(hasOrder || hasLote) && (
             <>

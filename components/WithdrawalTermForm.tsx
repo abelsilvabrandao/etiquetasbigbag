@@ -7,6 +7,8 @@ interface WithdrawalTermFormProps {
   labelQuantity: string;
   initialTruckPlate?: string;
   initialLote?: string;
+  initialProductName?: string;
+  initialTonelada?: string;
   initialData?: WithdrawalTermData | null;
   onSave: (data: WithdrawalTermData) => void;
   onCancel: () => void;
@@ -16,6 +18,8 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
   labelQuantity, 
   initialTruckPlate = '', 
   initialLote = '',
+  initialProductName = '',
+  initialTonelada = '',
   initialData,
   onSave, 
   onCancel 
@@ -31,7 +35,9 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     sealsQuantity: labelQuantity,
     labelsQuantity: labelQuantity,
-    hasSeals: true
+    hasSeals: true,
+    productName: initialProductName,
+    tonelada: initialTonelada
   });
 
   const [isCustomClient, setIsCustomClient] = useState(false);
@@ -83,7 +89,7 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
     const { name, value } = e.target;
     
     let processedValue = value;
-    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate' || name === 'clientName' || name === 'lote') {
+    if (name === 'driverName' || name === 'carrier' || name === 'truckPlate' || name === 'clientName' || name === 'lote' || name === 'productName') {
       processedValue = value.toUpperCase();
     } else if (name === 'driverCpf') {
       processedValue = formatCpf(value);
@@ -170,19 +176,47 @@ const WithdrawalTermForm: React.FC<WithdrawalTermFormProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className={labelClasses}>
-                Nome do Motorista
-                <span className="text-red-500">*</span>
-              </label>
-              <input 
-                name="driverName" 
-                value={data.driverName} 
-                onChange={handleChange} 
-                className={getInputClasses('driverName')} 
-                placeholder="NOME COMPLETO" 
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className={labelClasses}>
+                  Produto / Carga
+                  <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  name="productName" 
+                  value={data.productName} 
+                  onChange={handleChange} 
+                  className={getInputClasses('productName')} 
+                  placeholder="EX: SULFATO DE AMÔNIO" 
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>
+                  Quantidade (VALOR)
+                </label>
+                <input 
+                  name="tonelada" 
+                  value={data.tonelada} 
+                  onChange={handleChange} 
+                  className={getInputClasses('tonelada')} 
+                  placeholder="EX: 50" 
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>
+                  Nome do Motorista
+                  <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  name="driverName" 
+                  value={data.driverName} 
+                  onChange={handleChange} 
+                  className={getInputClasses('driverName')} 
+                  placeholder="NOME COMPLETO" 
+                />
+              </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelClasses}>

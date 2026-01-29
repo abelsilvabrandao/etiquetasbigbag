@@ -443,13 +443,15 @@ const App: React.FC = () => {
         hasSeals: !!record.sealsQuantity && record.sealsQuantity !== '0',
         sampleLabelDelivered: record.sampleLabelDelivered,
         orderNumber: record.orderNumber || '',
-        lote: record.lote
+        lote: record.lote,
+        productName: record.productName,
+        tonelada: record.tonelada
       });
       setIsPreviewTermOpen(true);
     } else {
       setCurrentLogId(record.id || null);
       setLabelQuantity(record.labelsQuantity);
-      setSession(prev => ({ ...prev, placa: record.placa, lote: record.lote }));
+      setSession(prev => ({ ...prev, placa: record.placa, lote: record.lote, tonelada: record.tonelada }));
       setWithdrawalData(null);
       setIsTermModalOpen(true);
     }
@@ -574,51 +576,60 @@ const App: React.FC = () => {
   };
 
   const handleTermSave = async (data: WithdrawalTermData) => {
-    setWithdrawalData(data);
+    // Garantir que productName e tonelada estejam no objeto de dados
+    const finalData = {
+      ...data,
+      productName: data.productName || selectedProduct?.name || "AVULSO",
+      tonelada: data.tonelada || session.tonelada || "0"
+    };
     
-    const queueItem = queue.find(q => q.placa === data.truckPlate);
+    setWithdrawalData(finalData);
+    
+    const queueItem = queue.find(q => q.placa === finalData.truckPlate);
     if (queueItem) {
       await updateDoc(doc(db, 'queue', queueItem.id), { termIssued: true });
     }
 
-    const q = query(collection(db, 'history'), where('placa', '==', data.truckPlate));
+    const q = query(collection(db, 'history'), where('placa', '==', finalData.truckPlate));
     const snap = await getDocs(q);
     const existingId = !snap.empty ? snap.docs[0].id : null;
 
     if (existingId) {
       await updateDoc(doc(db, 'history', existingId), {
         termGenerated: true,
-        clientName: data.clientName || "FERTIMAXI",
-        driverName: data.driverName || "",
-        driverCpf: data.driverCpf || "",
-        carrier: data.carrier || "",
-        sealsQuantity: data.sealsQuantity || "0",
-        date: data.date || "",
-        time: data.time || "",
-        sampleLabelDelivered: data.sampleLabelDelivered || false,
-        orderNumber: data.orderNumber || "",
-        lote: data.lote || session.lote || "AVULSO"
+        clientName: finalData.clientName || "FERTIMAXI",
+        driverName: finalData.driverName || "",
+        driverCpf: finalData.driverCpf || "",
+        carrier: finalData.carrier || "",
+        sealsQuantity: finalData.sealsQuantity || "0",
+        date: finalData.date || "",
+        time: finalData.time || "",
+        sampleLabelDelivered: finalData.sampleLabelDelivered || false,
+        orderNumber: finalData.orderNumber || "",
+        lote: finalData.lote || session.lote || "AVULSO",
+        productName: finalData.productName,
+        tonelada: finalData.tonelada
       });
     } else {
       const record: GenerationRecord = {
         timestamp: serverTimestamp(),
-        productName: selectedProduct?.name || 'EMISSÃO AVULSA',
+        productName: finalData.productName,
         productCode: selectedProduct?.code || 'AVULSO',
-        clientName: selectedProduct?.clientName || data.clientName || 'FERTIMAXI',
-        lote: data.lote || session.lote || 'AVULSO',
-        placa: session.placa || data.truckPlate,
-        tonelada: session.tonelada || '0',
+        clientName: finalData.clientName || 'FERTIMAXI',
+        lote: finalData.lote || session.lote || 'AVULSO',
+        placa: finalData.truckPlate,
+        tonelada: finalData.tonelada,
         labelsQuantity: labelQuantity || "1",
         termGenerated: true,
         labelGenerated: queueItem?.labelIssued || false,
-        driverName: data.driverName || "",
-        driverCpf: data.driverCpf || "",
-        carrier: data.carrier || "",
-        sealsQuantity: data.sealsQuantity || "0",
-        date: data.date || "",
-        time: data.time || "",
-        sampleLabelDelivered: data.sampleLabelDelivered || false,
-        orderNumber: data.orderNumber || ""
+        driverName: finalData.driverName || "",
+        driverCpf: finalData.driverCpf || "",
+        carrier: finalData.carrier || "",
+        sealsQuantity: finalData.sealsQuantity || "0",
+        date: finalData.date || "",
+        time: finalData.time || "",
+        sampleLabelDelivered: finalData.sampleLabelDelivered || false,
+        orderNumber: finalData.orderNumber || ""
       };
       await addDoc(collection(db, 'history'), record);
     }
@@ -831,7 +842,9 @@ const App: React.FC = () => {
       hasSeals: true,
       sampleLabelDelivered: item.sampleLabelDelivered || false,
       orderNumber: item.orderNumber,
-      lote: "AVULSO"
+      lote: "AVULSO",
+      productName: item.productName,
+      tonelada: item.quantity
     });
     
     setIsTermModalOpen(true);
@@ -1551,7 +1564,7 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       {isProductModalOpen && ( <ProductForm onSave={handleSaveProduct} onCancel={() => { setIsProductModalOpen(false); setEditingProduct(undefined); }} initialProduct={editingProduct} /> )}
-      {isTermModalOpen && ( <WithdrawalTermForm labelQuantity={labelQuantity} initialTruckPlate={session.placa} initialData={withdrawalData} initialLote={session.lote} onSave={handleTermSave} onCancel={() => setIsTermModalOpen(false)} /> )}
+      {isTermModalOpen && ( <WithdrawalTermForm labelQuantity={labelQuantity} initialTruckPlate={session.placa} initialData={withdrawalData} initialLote={session.lote} initialProductName={selectedProduct?.name} initialTonelada={session.tonelada} onSave={handleTermSave} onCancel={() => setIsTermModalOpen(false)} /> )}
       
       {confirmDialog.isOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] no-print">
